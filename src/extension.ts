@@ -73,7 +73,7 @@ async function cache(): Promise<void> {
             }, { concurrency: 30 });
         } catch (err) {
             notifier.notify("alert", "Failed to cache the CSS classes in the workspace (click for another attempt)");
-            throw new VError(err, "Failed to parse the documents");
+            throw new VError(err as any, "Failed to parse the documents");
         }
 
         uniqueDefinitions = _.uniqBy(definitions, (def) => def.className);
@@ -88,7 +88,7 @@ async function cache(): Promise<void> {
         notifier.notify("zap", "CSS classes cached (click to cache again)");
     } catch (err) {
         notifier.notify("alert", "Failed to cache the CSS classes in the workspace (click for another attempt)");
-        throw new VError(err,
+        throw new VError(err as any,
             "Failed to cache the class definitions during the iterations over the documents that were found");
     }
 }
@@ -217,7 +217,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
                 registerJavaScriptProviders(javaScriptDisposables);
             }
         } catch (err) {
-            const newErr = new VError(err, "Failed to automatically reload the extension after the configuration change");
+            const newErr = new VError(err as any, "Failed to automatically reload the extension after the configuration change");
             console.error(newErr);
             window.showErrorMessage(newErr.message);
         }
@@ -233,7 +233,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         try {
             await cache();
         } catch (err) {
-            const newErr = new VError(err, "Failed to cache the CSS classes in the workspace");
+            const newErr = new VError(err as any, "Failed to cache the CSS classes in the workspace");
             console.error(newErr);
             window.showErrorMessage(newErr.message);
         } finally {
@@ -253,7 +253,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
     try {
         await cache();
     } catch (err) {
-        const newErr = new VError(err, "Failed to cache the CSS classes in the workspace for the first time");
+        const newErr = new VError(err as any, "Failed to cache the CSS classes in the workspace for the first time");
         console.error(newErr);
         window.showErrorMessage(newErr.message);
     } finally {
