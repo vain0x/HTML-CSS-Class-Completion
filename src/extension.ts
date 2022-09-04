@@ -31,13 +31,14 @@ let uniqueDefinitions: CssClassDefinition[] = [];
 const completionTriggerChars = ['"', "'", " ", "."];
 
 let caching = false;
+let cacheRequested = false;
 
 const htmlDisposables: Disposable[] = [];
 const cssDisposables: Disposable[] = [];
 const javaScriptDisposables: Disposable[] = [];
 const emmetDisposables: Disposable[] = [];
 
-async function cache(): Promise<void> {
+async function performCache(): Promise<void> {
     try {
         notifier.notify("eye", "Looking for CSS classes in the workspace...");
 
@@ -90,6 +91,33 @@ async function cache(): Promise<void> {
         notifier.notify("alert", "Failed to cache the CSS classes in the workspace (click for another attempt)");
         throw new VError(err as any,
             "Failed to cache the class definitions during the iterations over the documents that were found");
+    }
+}
+
+async function cache() {
+    if (caching) {
+        // Let the running cache function redo.
+        cacheRequested = true;
+        return;
+    }
+
+    while (true) {
+        caching = true;
+        try {
+            await performCache();
+        } finally {
+            caching = false;
+        }
+
+        // If the function itself was called while performing the process above,
+        // the result might be invalidated. Redo the process to refresh it.
+        // This trick reduces works and prevents parallel execution.
+        if (cacheRequested) {
+            cacheRequested = false;
+            continue;
+        } else {
+            return;
+        }
     }
 }
 
@@ -225,19 +253,18 @@ export async function activate(context: ExtensionContext): Promise<void> {
     context.subscriptions.push(...disposables);
 
     context.subscriptions.push(commands.registerCommand(Command.Cache, async () => {
-        if (caching) {
-            return;
-        }
-
-        caching = true;
         try {
             await cache();
         } catch (err) {
             const newErr = new VError(err as any, "Failed to cache the CSS classes in the workspace");
             console.error(newErr);
             window.showErrorMessage(newErr.message);
-        } finally {
-            caching = false;
+        }
+    }));
+
+    context.subscriptions.push(workspace.onDidSaveTextDocument(textDocument => {
+        if (textDocument.languageId === "css") {
+            commands.executeCommand(Command.Cache);
         }
     }));
 
@@ -249,15 +276,12 @@ export async function activate(context: ExtensionContext): Promise<void> {
     registerCSSProviders(cssDisposables);
     registerJavaScriptProviders(javaScriptDisposables);
 
-    caching = true;
     try {
         await cache();
     } catch (err) {
         const newErr = new VError(err as any, "Failed to cache the CSS classes in the workspace for the first time");
         console.error(newErr);
         window.showErrorMessage(newErr.message);
-    } finally {
-        caching = false;
     }
 }
 
