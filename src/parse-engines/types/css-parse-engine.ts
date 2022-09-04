@@ -12,7 +12,7 @@ class CssParseEngine implements IParseEngine {
         const code: string = textDocument.getText();
         const codeAst: css.Stylesheet = css.parse(code);
 
-        return CssClassExtractor.extract(codeAst);
+        return CssClassExtractor.extract(codeAst, textDocument.uri as any);
     }
 }
 

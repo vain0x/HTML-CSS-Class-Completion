@@ -25,6 +25,7 @@ async function createSimpleTextDocument(uri: vscode.Uri): Promise<ISimpleTextDoc
         getText(): string {
             return text;
         },
+        uri,
     };
     return simpleDocument;
 }
@@ -33,7 +34,7 @@ class ParseEngineGateway {
     public static async callParser(uri: vscode.Uri): Promise<CssClassDefinition[]> {
         const textDocument = await createSimpleTextDocument(uri);
         const parseEngine: IParseEngine = ParseEngineRegistry.getParseEngine(textDocument.languageId);
-        const cssClassDefinitions: CssClassDefinition[] = await parseEngine.parse(textDocument);
+        const cssClassDefinitions: CssClassDefinition[] = await parseEngine.parse(textDocument, uri);
         return cssClassDefinitions;
     }
 }
