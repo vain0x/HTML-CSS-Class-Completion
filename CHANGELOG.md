@@ -1,3 +1,15 @@
+### 1.21 (2022-09-05)
+
+This version is a fork by vain0x.
+
+* Add definition provider for javascript files
+* Refresh internal cache on save css files
+* Merged PRs:
+    * [Use activationevents to prevent launching the ext on unrelated workspaces by jens1o · Pull Request #124](https://github.com/zignd/HTML-CSS-Class-Completion/pull/124)
+    * [Allow escaped characters in css selectors by canvasplay · Pull Request #289](https://github.com/zignd/HTML-CSS-Class-Completion/pull/289)
+    * [Add curly bracket to JS provider for use in React. by bilherron · Pull Request #371](https://github.com/zignd/HTML-CSS-Class-Completion/pull/371)
+* Update packages
+
 ### 1.20 (Dec 19, 2020)
 * Settings to allow users to specify which language modes will have autocompletion;
 * Fix interpretation of classes defined inside media queries.
