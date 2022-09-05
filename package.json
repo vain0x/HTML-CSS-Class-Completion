@@ -2,8 +2,8 @@
   "name": "html-css-class-completion",
   "displayName": "IntelliSense for CSS class names in HTML",
   "description": "CSS class name completion for the HTML class attribute based on the definitions found in your workspace.",
-  "version": "1.20.0",
-  "publisher": "Zignd",
+  "version": "1.21.0",
+  "publisher": "vain0x",
   "engines": {
     "vscode": "^1.52.0"
   },
@@ -90,7 +90,8 @@
   },
   "icon": "images/icon.png",
   "repository": {
-    "url": "https://github.com/Zignd/HTML-CSS-Class-Completion"
+    "type": "git",
+    "url": "https://github.com/vain0x/HTML-CSS-Class-Completion"
   },
   "main": "./dist/extension.js",
   "scripts": {
@@ -98,6 +99,7 @@
     "compile": "webpack --config ./build/node-extension.webpack.config.js",
     "watch": "webpack --watch --config ./build/node-extension.webpack.config.js",
     "package": "webpack --mode production --devtool hidden-source-map --config ./build/node-extension.webpack.config.js",
+    "vsce-package": "vsce package",
     "test-compile": "tsc -p ./",
     "test-watch": "tsc -watch -p ./",
     "pretest": "npm run test-compile && npm run lint",
@@ -115,7 +117,7 @@
     "@types/request": "^2.48.8",
     "@types/request-promise": "^4.1.48",
     "@types/verror": "^1.10.6",
-    "@types/vscode": "^1.71.0",
+    "@types/vscode": "=1.52.0",
     "@typescript-eslint/eslint-plugin": "^5.36.1",
     "@typescript-eslint/parser": "^5.36.1",
     "eslint": "^8.23.0",
@@ -123,6 +125,7 @@
     "mocha": "^10.0.0",
     "ts-loader": "^9.3.1",
     "typescript": "^4.8.2",
+    "vsce": "^2.11.0",
     "vscode-test": "^1.4.1",
     "webpack": "^5.74.0",
     "webpack-cli": "^4.10.0"
