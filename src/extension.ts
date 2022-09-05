@@ -4,7 +4,7 @@ import "source-map-support/register";
 import * as VError from "verror";
 import {
     commands, CompletionItem, CompletionItemKind, Disposable,
-    ExtensionContext, Hover, languages, Location, Position, Range, TextDocument, Uri, window,
+    ExtensionContext, languages, Location, Position, Range, TextDocument, Uri, window,
     workspace,
 } from "vscode";
 import CssClassDefinition from "./common/css-class-definition";
@@ -202,40 +202,6 @@ const registerDefinitionProvider = (languageSelector: string, classMatchRegex: R
     },
 })
 
-const registerHoverProvider = (languageSelector: string, classMatchRegex: RegExp) => languages.registerHoverProvider(languageSelector, {
-    provideHover(document, position, _token) {
-        {
-            const start: Position = new Position(position.line, 0);
-            const range: Range = new Range(start, position);
-            const text: string = document.getText(range);
-
-            const rawClasses: RegExpMatchArray | null = text.match(classMatchRegex);
-            if (!rawClasses || rawClasses.length === 1) {
-                return;
-            }
-        }
-
-        const range: Range | undefined = document.getWordRangeAtPosition(position, /[-\w,@\\:\[\]]+/);
-        if (range == null) {
-            return;
-        }
-
-        const word: string = document.getText(range);
-
-        // Creates a collection of CompletionItem based on the classes already cached
-        const definition = uniqueDefinitions.find((definition) => {
-            return definition.className === word
-        });
-        if (definition == null) {
-            return;
-        }
-
-        if (definition.comments != null) {
-            return new Hover(`**.\`${word}\`**\n${definition.comments.join("\n\n")}`, range)
-        }
-    },
-})
-
 const registerHTMLProviders = (disposables: Disposable[]) =>
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
@@ -260,7 +226,6 @@ const registerJavaScriptProviders = (disposables: Disposable[]) =>
             disposables.push(registerCompletionProvider(extension, /className=(?:{?"|{?'|{?`)([\w-@:\/ ]*$)/));
             disposables.push(registerCompletionProvider(extension, /class=(?:{?"|{?')([\w-@:\/ ]*$)/));
             disposables.push(registerDefinitionProvider(extension, /class(?:Name)?=["|']([\w- ]*$)/));
-            disposables.push(registerHoverProvider(extension, /class(?:Name)?=["|']([\w- ]*$)/));
         });
 
 function registerEmmetProviders(disposables: Disposable[]) {
