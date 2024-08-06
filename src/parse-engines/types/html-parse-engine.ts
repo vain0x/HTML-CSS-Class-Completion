@@ -1,7 +1,6 @@
 import * as css from "css";
 import * as html from "htmlparser2";
 import pMap from "p-map";
-import * as request from "request-promise";
 import * as vscode from "vscode";
 import CssClassDefinition from "../../common/css-class-definition";
 import CssClassExtractor from "../common/css-class-extractor";
@@ -51,7 +50,12 @@ class HtmlParseEngine implements IParseEngine {
         parser.end();
 
         await pMap(urls, async (url) => {
-            const content = await request.get(url);
+            const res = await fetch(url);
+            if (!res.ok) {
+                // Tolerable.
+            }
+            const content = await res.text();
+
             let uri: vscode.Uri | undefined;
             try {
                 uri = vscode.Uri.parse(url);
