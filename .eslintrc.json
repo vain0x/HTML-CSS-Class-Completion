@@ -10,7 +10,7 @@
     ],
     "rules": {
         "curly": "warn",
-        "eqeqeq": "warn",
+        "eqeqeq": ["warn", "allow-null"],
         "no-throw-literal": "warn"
     }
 }
