@@ -1,3 +1,15 @@
+#### About This Fork
+
+> This repository has been forked from [the upstream](https://github.com/zignd/HTML-CSS-Class-Completion).
+>
+> Feature is almost equivalent. Some improvements and maintenance are made.
+> See CHANGELOG and commits for more details.
+>
+> Info:
+>
+> - Final upstream commit: `2020-12-19 20:16:02 -0300 f6bdfa0`
+> - First fork commit: `2022-09-05 00:08:50 +0900 d3672ba`
+
 # IntelliSense for CSS class names in HTML
 
 A Visual Studio Code extension that provides CSS class name completion for the HTML `class` attribute based on the definitions found in your workspace or external files referenced through the `link` element.
