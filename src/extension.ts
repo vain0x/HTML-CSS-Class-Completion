@@ -1,5 +1,5 @@
-import * as Bluebird from "bluebird";
 import * as _ from "lodash";
+import pMap from "p-map";
 import "source-map-support/register";
 import * as VError from "verror";
 import {
@@ -61,7 +61,7 @@ async function performCache(): Promise<void> {
         console.log("Parsing documents and looking for CSS class definitions...");
 
         try {
-            await Bluebird.map(uris, async (uri) => {
+            await pMap(uris, async (uri) => {
                 try {
                     Array.prototype.push.apply(definitions, await ParseEngineGateway.callParser(uri));
                 } catch (error) {

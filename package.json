@@ -107,7 +107,6 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/bluebird": "^3.5.36",
     "@types/css": "0.0.33",
     "@types/lodash": "^4.14.184",
     "@types/mocha": "^10.0.7",
@@ -129,10 +128,10 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "bluebird": "^3.7.2",
     "css": "^3.0.0",
     "htmlparser2": "^9.1.0",
     "lodash": "^4.17.21",
+    "p-map": "^7.0.2",
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
     "source-map-support": "^0.5.21",

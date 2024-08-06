@@ -1,6 +1,6 @@
-import * as Bluebird from "bluebird";
 import * as css from "css";
 import * as html from "htmlparser2";
+import pMap from "p-map";
 import * as request from "request-promise";
 import * as vscode from "vscode";
 import CssClassDefinition from "../../common/css-class-definition";
@@ -50,7 +50,7 @@ class HtmlParseEngine implements IParseEngine {
         parser.write(textDocument.getText());
         parser.end();
 
-        await Bluebird.map(urls, async (url) => {
+        await pMap(urls, async (url) => {
             const content = await request.get(url);
             let uri: vscode.Uri | undefined;
             try {
