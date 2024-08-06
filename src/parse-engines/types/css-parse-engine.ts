@@ -1,4 +1,4 @@
-import * as css from "css";
+import * as css from "@adobe/css-tools";
 import CssClassDefinition from "../../common/css-class-definition";
 import CssClassExtractor from "../common/css-class-extractor";
 import IParseEngine from "../common/parse-engine";
@@ -10,7 +10,7 @@ class CssParseEngine implements IParseEngine {
 
     public async parse(textDocument: ISimpleTextDocument): Promise<CssClassDefinition[]> {
         const code: string = textDocument.getText();
-        const codeAst: css.Stylesheet = css.parse(code);
+        const codeAst: css.CssStylesheetAST = css.parse(code);
 
         return CssClassExtractor.extract(codeAst, textDocument.uri as any);
     }

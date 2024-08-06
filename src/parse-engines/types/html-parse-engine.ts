@@ -1,4 +1,4 @@
-import * as css from "css";
+import * as css from "@adobe/css-tools";
 import * as html from "htmlparser2";
 import pMap from "p-map";
 import * as vscode from "vscode";

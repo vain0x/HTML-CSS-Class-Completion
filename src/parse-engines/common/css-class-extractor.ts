@@ -1,4 +1,4 @@
-import * as css from "css";
+import * as css from "@adobe/css-tools";
 import * as vscode from "vscode";
 import CssClassDefinition from "../../common/css-class-definition";
 
@@ -6,13 +6,13 @@ export default class CssClassExtractor {
     /**
      * @description Extracts class names from CSS AST
      */
-    public static extract(ast: css.Stylesheet, uri: vscode.Uri | undefined): CssClassDefinition[] {
+    public static extract(ast: css.CssStylesheetAST, uri: vscode.Uri | undefined): CssClassDefinition[] {
         const classNameRegex = /[.](([\w-]|\\[@:/])+)/g;
 
         const definitions: CssClassDefinition[] = [];
 
         // go through each of the selectors of the current rule
-        const addRule = (rule: css.Rule, comments: string[] | undefined) => {
+        const addRule = (rule: css.CssRuleAST, comments: string[] | undefined) => {
             rule.selectors?.forEach((selector: string) => {
                 let item: RegExpExecArray | null = classNameRegex.exec(selector);
                 while (item) {
@@ -27,22 +27,26 @@ export default class CssClassExtractor {
         };
 
         // go through each of the rules or media query...
-        ast.stylesheet?.rules.forEach((rule: css.Rule & css.Media, index) => {
+        ast.stylesheet?.rules.forEach((rule: css.CssAtRuleAST, index) => {
             // ...of type rule
             if (rule.type === "rule") {
                 addRule(rule, collectComments(ast.stylesheet!.rules, index));
             }
-            // of type media queries
-            if (rule.type === "media") {
+            // of type media queries (and layers)
+            if (rule.type === "media" || rule.type === "layer") {
                 // go through rules inside media queries
-                rule.rules?.forEach((r: css.Rule, i) => addRule(r, collectComments(rule.rules!, i)));
+                rule.rules?.forEach((r: css.CssAtRuleAST, i) => {
+                    if (r.type === "rule") {
+                        addRule(r, collectComments(rule.rules!, i));
+                    }
+                });
             }
         });
         return definitions;
     }
 }
 
-function collectComments(rules: (css.Rule | css.Comment | css.AtRule)[], index: number): string[] | undefined {
+function collectComments(rules: (css.CssRuleAST | css.CssCommentAST | css.CssAtRuleAST)[], index: number): string[] | undefined {
     if (!rules || index === 0) {
         return undefined;
     }
@@ -67,7 +71,7 @@ function collectComments(rules: (css.Rule | css.Comment | css.AtRule)[], index: 
     return comments;
 }
 
-const toLocation = (node: css.Node, uri: vscode.Uri | undefined) => {
+const toLocation = (node: css.CssCommonPositionAST, uri: vscode.Uri | undefined) => {
     if (!uri || !node.position) {
         return undefined;
     }
@@ -85,10 +89,11 @@ const toLocation = (node: css.Node, uri: vscode.Uri | undefined) => {
     return new vscode.Location(uri, new vscode.Range(start, end));
 }
 
-const toPosition = (node: css.Position) => {
-    if (node.line == null || node.column == null) {
-        return undefined;
-    }
-
+const toPosition = (node: CssPosition) => {
     return new vscode.Position(node.line - 1, node.column - 1);
+}
+
+interface CssPosition {
+    line: number;
+    column: number;
 }

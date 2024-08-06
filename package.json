@@ -107,7 +107,6 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/css": "0.0.33",
     "@types/lodash": "^4.14.184",
     "@types/mocha": "^10.0.7",
     "@types/node": "^20.14.14",
@@ -126,7 +125,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "css": "^3.0.0",
+    "@adobe/css-tools": "^4.4.0",
     "htmlparser2": "^9.1.0",
     "lodash": "^4.17.21",
     "p-map": "^7.0.2",
