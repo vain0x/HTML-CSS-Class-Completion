@@ -110,7 +110,6 @@
     "@types/bluebird": "^3.5.36",
     "@types/css": "0.0.33",
     "@types/glob": "^8.0.0",
-    "@types/htmlparser2": "^3.10.3",
     "@types/lodash": "^4.14.184",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.7.14",
@@ -133,7 +132,7 @@
   "dependencies": {
     "bluebird": "^3.7.2",
     "css": "^3.0.0",
-    "htmlparser2": "^8.0.1",
+    "htmlparser2": "^9.1.0",
     "lodash": "^4.17.21",
     "request": "^2.88.2",
     "request-promise": "^4.2.6",
