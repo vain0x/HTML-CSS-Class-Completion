@@ -1,7 +1,6 @@
 import * as _ from "lodash";
 import pMap from "p-map";
 import "source-map-support/register";
-import * as VError from "verror";
 import {
     commands, CompletionItem, CompletionItemKind, Disposable,
     ExtensionContext, languages, Location, Position, Range, TextDocument, Uri, window,
@@ -74,7 +73,7 @@ async function performCache(): Promise<void> {
             }, { concurrency: 30 });
         } catch (err) {
             notifier.notify("alert", "Failed to cache the CSS classes in the workspace (click for another attempt)");
-            throw new VError(err as any, "Failed to parse the documents");
+            throw new Error("Failed to parse the documents", { cause: err });
         }
 
         uniqueDefinitions = _.uniqBy(definitions, (def) => def.className);
@@ -89,8 +88,7 @@ async function performCache(): Promise<void> {
         notifier.notify("zap", "CSS classes cached (click to cache again)");
     } catch (err) {
         notifier.notify("alert", "Failed to cache the CSS classes in the workspace (click for another attempt)");
-        throw new VError(err as any,
-            "Failed to cache the class definitions during the iterations over the documents that were found");
+        throw new Error("Failed to cache the class definitions during the iterations over the documents that were found", { cause: err });
     }
 }
 
@@ -283,7 +281,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
                 registerJavaScriptProviders(javaScriptDisposables);
             }
         } catch (err) {
-            const newErr = new VError(err as any, "Failed to automatically reload the extension after the configuration change");
+            const newErr = new Error("Failed to automatically reload the extension after the configuration change", { cause: err });
             console.error(newErr);
             window.showErrorMessage(newErr.message);
         }
@@ -294,7 +292,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         try {
             await cache();
         } catch (err) {
-            const newErr = new VError(err as any, "Failed to cache the CSS classes in the workspace");
+            const newErr = new Error("Failed to cache the CSS classes in the workspace", { cause: err });
             console.error(newErr);
             window.showErrorMessage(newErr.message);
         }
@@ -317,7 +315,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
     try {
         await cache();
     } catch (err) {
-        const newErr = new VError(err as any, "Failed to cache the CSS classes in the workspace for the first time");
+        const newErr = new Error("Failed to cache the CSS classes in the workspace for the first time", { cause: err });
         console.error(newErr);
         window.showErrorMessage(newErr.message);
     }

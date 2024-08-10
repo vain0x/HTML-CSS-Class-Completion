@@ -1,5 +1,4 @@
 import * as fs from "fs";
-import VError = require("verror");
 import * as vscode from "vscode";
 
 import CssClassDefinition from "./common/css-class-definition";
