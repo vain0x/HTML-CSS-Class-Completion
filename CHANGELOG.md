@@ -4,6 +4,7 @@ The versions >= 1.21 are fork.
 
 ### Unreleased
 
+* Added `enableExternalStylesheetSupport` configuration (opt-out flag)
 * Upgraded dependencies
 
 ### 1.21 (2022-09-05)

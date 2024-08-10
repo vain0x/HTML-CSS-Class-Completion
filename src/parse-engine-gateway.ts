@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 
 import CssClassDefinition from "./common/css-class-definition";
 import IParseEngine from "./parse-engines/common/parse-engine";
+import IParseOptions from "./parse-engines/common/parse-options";
 import ISimpleTextDocument from "./parse-engines/common/simple-text-document";
 import ParseEngineRegistry from "./parse-engines/parse-engine-registry";
 
@@ -30,10 +31,10 @@ async function createSimpleTextDocument(uri: vscode.Uri): Promise<ISimpleTextDoc
 }
 
 class ParseEngineGateway {
-    public static async callParser(uri: vscode.Uri): Promise<CssClassDefinition[]> {
+    public static async callParser(uri: vscode.Uri, parseOptions: IParseOptions): Promise<CssClassDefinition[]> {
         const textDocument = await createSimpleTextDocument(uri);
         const parseEngine: IParseEngine = ParseEngineRegistry.getParseEngine(textDocument.languageId);
-        const cssClassDefinitions: CssClassDefinition[] = await parseEngine.parse(textDocument, uri);
+        const cssClassDefinitions: CssClassDefinition[] = await parseEngine.parse(textDocument, uri, parseOptions);
         return cssClassDefinitions;
     }
 }

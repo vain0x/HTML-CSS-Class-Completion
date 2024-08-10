@@ -5,13 +5,14 @@ import * as vscode from "vscode";
 import CssClassDefinition from "../../common/css-class-definition";
 import CssClassExtractor from "../common/css-class-extractor";
 import IParseEngine from "../common/parse-engine";
+import IParseOptions from "../common/parse-options";
 import ISimpleTextDocument from "../common/simple-text-document";
 
 class HtmlParseEngine implements IParseEngine {
     public languageId = "html";
     public extension = "html";
 
-    public async parse(textDocument: ISimpleTextDocument, uri: vscode.Uri | undefined): Promise<CssClassDefinition[]> {
+    public async parse(textDocument: ISimpleTextDocument, uri: vscode.Uri | undefined, options: IParseOptions): Promise<CssClassDefinition[]> {
         const definitions: CssClassDefinition[] = [];
         const urls: string[] = [];
         let tag: string;
@@ -49,21 +50,27 @@ class HtmlParseEngine implements IParseEngine {
         parser.write(textDocument.getText());
         parser.end();
 
-        await pMap(urls, async (url) => {
-            const res = await fetch(url);
-            if (!res.ok) {
-                // Tolerable.
-            }
-            const content = await res.text();
+        if (urls.length === 0) {
+            // Nothing to do.
+        } else if (!options.enableExternalStylesheetSupport) {
+            console.log("External stylesheet support is disabled", urls)
+        } else {
+            await pMap(urls, async (url) => {
+                const res = await fetch(url);
+                if (!res.ok) {
+                    // Tolerable.
+                }
+                const content = await res.text();
 
-            let uri: vscode.Uri | undefined;
-            try {
-                uri = vscode.Uri.parse(url);
-            } catch (err) {
-                // Tolerable.
-            }
-            definitions.push(...CssClassExtractor.extract(css.parse(content), uri));
-        }, { concurrency: 10 });
+                let uri: vscode.Uri | undefined;
+                try {
+                    uri = vscode.Uri.parse(url);
+                } catch (err) {
+                    // Tolerable.
+                }
+                definitions.push(...CssClassExtractor.extract(css.parse(content), uri));
+            }, { concurrency: 10 });
+        }
 
         return definitions;
     }

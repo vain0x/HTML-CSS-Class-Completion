@@ -48,6 +48,11 @@
             "default": false,
             "description": "Enables completion when you're writing Emmet abbreviations."
           },
+          "html-css-class-completion.enableExternalStylesheetSupport": {
+            "type": "boolean",
+            "default": true,
+            "description": "Support external stylesheet (If true, src attributes on link[rel=stylesheet] in HTML documents are fetched. If false, link elements are ignored.)"
+          },
           "html-css-class-completion.HTMLLanguages": {
             "type": "array",
             "description": "A list of HTML based languages where suggestions are enabled.",

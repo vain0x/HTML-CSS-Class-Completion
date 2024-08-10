@@ -1,6 +1,7 @@
 import * as _ from "lodash";
 import pMap from "p-map";
 import "source-map-support/register";
+import * as vscode from "vscode";
 import {
     commands, CompletionItem, CompletionItemKind, Disposable,
     ExtensionContext, languages, Location, Position, Range, TextDocument, Uri, window,
@@ -10,6 +11,7 @@ import CssClassDefinition from "./common/css-class-definition";
 import Fetcher from "./fetcher";
 import Notifier from "./notifier";
 import ParseEngineGateway from "./parse-engine-gateway";
+import IParseOptions from "./parse-engines/common/parse-options";
 
 enum Command {
     Cache = "html-css-class-completion.cache",
@@ -19,6 +21,7 @@ enum Configuration {
     IncludeGlobPattern = "html-css-class-completion.includeGlobPattern",
     ExcludeGlobPattern = "html-css-class-completion.excludeGlobPattern",
     EnableEmmetSupport = "html-css-class-completion.enableEmmetSupport",
+    EnableExternalStylesheetSupport = "html-css-class-completion.enableExternalStylesheetSupport",
     HTMLLanguages = "html-css-class-completion.HTMLLanguages",
     CSSLanguages = "html-css-class-completion.CSSLanguages",
     JavaScriptLanguages = "html-css-class-completion.JavaScriptLanguages",
@@ -53,6 +56,11 @@ async function performCache(): Promise<void> {
         console.log("Found all parseable documents.");
         const definitions: CssClassDefinition[] = [];
 
+        const configuration = vscode.workspace.getConfiguration();
+        const parseOptions: IParseOptions = {
+            enableExternalStylesheetSupport: configuration.get<boolean>(Configuration.EnableExternalStylesheetSupport)!,
+        };
+
         let filesParsed = 0;
         let failedLogs = "";
         let failedLogsCount = 0;
@@ -62,7 +70,7 @@ async function performCache(): Promise<void> {
         try {
             await pMap(uris, async (uri) => {
                 try {
-                    Array.prototype.push.apply(definitions, await ParseEngineGateway.callParser(uri));
+                    Array.prototype.push.apply(definitions, await ParseEngineGateway.callParser(uri, parseOptions));
                 } catch (error) {
                     failedLogs += `${uri.path}\n`;
                     failedLogsCount++;
@@ -256,7 +264,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
     workspace.onDidChangeConfiguration(async (e) => {
         try {
             if (e.affectsConfiguration(Configuration.IncludeGlobPattern) ||
-                e.affectsConfiguration(Configuration.ExcludeGlobPattern)) {
+                e.affectsConfiguration(Configuration.ExcludeGlobPattern) ||
+                e.affectsConfiguration(Configuration.EnableExternalStylesheetSupport)) {
                 await cache();
             }
 
