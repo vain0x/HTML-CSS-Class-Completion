@@ -4,10 +4,14 @@ The versions >= 1.21 are fork.
 
 ### Unreleased
 
+(none)
+
+### 1.22.0 - 2024-08-27
+
 * Added `enableExternalStylesheetSupport` configuration (opt-out flag)
 * Upgraded dependencies
 
-### 1.21 (2022-09-05)
+### 1.21.0 - 2022-09-05
 
 * Added the definition provider for JavaScript files
 * Added the feature to refresh internal cache on save css files
