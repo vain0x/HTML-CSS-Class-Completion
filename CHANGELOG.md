@@ -6,6 +6,10 @@ The versions >= 1.21 are fork.
 
 (none)
 
+### 1.22.1 - 2024-08-28
+
+* Fixed escape handling in css files
+
 ### 1.22.0 - 2024-08-27
 
 * Added `enableExternalStylesheetSupport` configuration (opt-out flag)
