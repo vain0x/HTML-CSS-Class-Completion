@@ -7,7 +7,7 @@ export default class CssClassExtractor {
      * @description Extracts class names from CSS AST
      */
     public static extract(ast: css.CssStylesheetAST, uri: vscode.Uri | undefined): CssClassDefinition[] {
-        const classNameRegex = /[.](([\w-]|\\[@:/])+)/g;
+        const classNameRegex = /[.]((?:[-\w]|\\.)+)/g;
 
         const definitions: CssClassDefinition[] = [];
 
@@ -16,7 +16,7 @@ export default class CssClassExtractor {
             rule.selectors?.forEach((selector: string) => {
                 let item: RegExpExecArray | null = classNameRegex.exec(selector);
                 while (item) {
-                    const definition = new CssClassDefinition(item[1].replace("\\", ""));
+                    const definition = new CssClassDefinition(item[1].replaceAll("\\", ""));
                     definition.comments = comments;
                     definition.location = toLocation(rule, uri);
                     definitions.push(definition);
