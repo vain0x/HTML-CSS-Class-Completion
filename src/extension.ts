@@ -155,8 +155,8 @@ const registerCompletionProvider = (
                 break;
             }
             case "javascript": {
-                const REGEXP1 = /className=(?:{?"|{?'|{?`)([\w-@:\/ ]*$)/;
-                const REGEXP2 = /class=(?:{?"|{?')([\w-@:\/ ]*$)/;
+                const REGEXP1 = /className=(?:{?"|{?'|{?`)([-\w,@\\:\[\] ]*$)/;
+                const REGEXP2 = /class=(?:{?"|{?')([-\w,@\\:\[\] ]*$)/;
 
                 let matched = false;
 
@@ -330,7 +330,7 @@ const registerHTMLProviders = (disposables: Disposable[]) =>
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
         ?.forEach((extension) => {
-            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([\w-@:\/ ]*$)/ }));
+            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-\w,@\\:\[\] ]*$)/ }));
         });
 
 const registerCSSProviders = (disposables: Disposable[]) =>
@@ -340,7 +340,7 @@ const registerCSSProviders = (disposables: Disposable[]) =>
             // The @apply rule was a CSS proposal which has since been abandoned,
             // check the proposal for more info: http://tabatkins.github.io/specs/css-apply-rule/
             // Its support should probably be removed
-            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ([.\w-@:\/ ]*$)/ }, "."));
+            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-\w,@\\:\[\] ])*$)/ }, "."));
         });
 
 const registerJavaScriptProviders = (disposables: Disposable[]) =>
@@ -348,7 +348,7 @@ const registerJavaScriptProviders = (disposables: Disposable[]) =>
         .get<string[]>(Configuration.JavaScriptLanguages)
         ?.forEach((extension) => {
             disposables.push(registerCompletionProvider(extension, { type: "javascript" }));
-            disposables.push(registerDefinitionProvider(extension, /class(?:Name)?=["|']([\w- ]*$)/));
+            disposables.push(registerDefinitionProvider(extension, /class(?:Name)?=(?:\{?["'`])([-\w,@\\:\[\] ]*$)/));
         });
 
 function registerEmmetProviders(disposables: Disposable[]) {
