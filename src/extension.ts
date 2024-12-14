@@ -7,10 +7,12 @@ import {
     ExtensionContext, languages, Location, Position, Range, TextDocument, Uri, window,
     workspace,
 } from "vscode";
+import type ClassAttributeMatcher from "./common/class-attribute-matcher";
 import CssClassDefinition from "./common/css-class-definition";
 import Fetcher from "./fetcher";
 import Notifier from "./notifier";
 import ParseEngineGateway from "./parse-engine-gateway";
+import ClassAttributeExtractor from "./parse-engines/common/class-attribute-extractor";
 import IParseOptions from "./parse-engines/common/parse-options";
 
 enum Command {
@@ -129,128 +131,14 @@ async function cache() {
 
 const registerCompletionProvider = (
     languageSelector: string,
-    matcherMode: CompletionMatcherMode,
+    matcher: ClassAttributeMatcher,
     classPrefix = "",
 ) => languages.registerCompletionItemProvider(languageSelector, {
     provideCompletionItems(document: TextDocument, position: Position): CompletionItem[] {
-        const start: Position = new Position(position.line, 0);
-        const range: Range = new Range(start, position);
-        const text: string = document.getText(range);
-
-        // Classes already written in the completion target. These classes are excluded.
-        const classesOnAttribute: string[] = [];
-
-        switch (matcherMode.type) {
-            case "regexp": {
-                const { classMatchRegex, splitChar = " " } = matcherMode;
-                // Check if the cursor is on a class attribute and retrieve all the css rules in this class attribute.
-                // Unless matched, completion isn't provided at the position.
-                const rawClasses: RegExpMatchArray | null = text.match(classMatchRegex);
-                if (!rawClasses || rawClasses.length === 1) {
-                    return [];
-                }
-
-                // Will store the classes found on the class attribute.
-                classesOnAttribute.push(...rawClasses[1].split(splitChar));
-                break;
-            }
-            case "javascript": {
-                const REGEXP1 = /className=(?:{?"|{?'|{?`)([-\w,@\\:\[\] ]*$)/;
-                const REGEXP2 = /class=(?:{?"|{?')([-\w,@\\:\[\] ]*$)/;
-
-                let matched = false;
-
-                // Apply two regexp rules.
-                for (const regexp of [REGEXP1, REGEXP2]) {
-                    const rawClasses = text.match(regexp);
-                    if (!rawClasses || rawClasses.length === 1) {
-                        continue;
-                    }
-
-                    matched = true;
-                    classesOnAttribute.push(...rawClasses[1].split(" "));
-                }
-
-                // Special case for `className={}`,
-                // e.g. `className={"widget " + (p ? "widget--modified" : "")}.
-                // The completion is provided if the position is in the braces and in a string literal.
-                const attributeIndex = text.lastIndexOf("className={");
-                if (attributeIndex >= 0) {
-                    const start = attributeIndex + "className={".length;
-                    let index = start;
-
-                    // Stack to find matching braces and quotes.
-                    // Whenever an open brace or opening quote is found, push it.
-                    // When the closer is found, pop it.
-                    let stack: string[] = [];
-
-                    const inQuote = () => {
-                        const top = stack.at(-1);
-                        return top === "\"" || top === "'" || top === "`";
-                    };
-
-                    for (; index < text.length; index++) {
-                        const char = text[index];
-                        if (stack.length === 0 && char === "}") {
-                            break;
-                        }
-                        switch (char) {
-                            case "{":
-                                stack.push("{");
-                                break;
-
-                            case "}": {
-                                const last = stack.at(-1);
-                                if (last === "{" || last === "${") {
-                                    stack.pop();
-                                }
-                                break;
-                            }
-                            case "\"":
-                            case "'":
-                            case "`":
-                                if (stack.at(-1) === char) {
-                                    stack.pop();
-                                } else {
-                                    stack.push(char);
-                                }
-                                break;
-
-                            // Escape sequence (e.g. `\"`.)
-                            case "\\":
-                                if (inQuote() && index + 1 < text.length) {
-                                    index++;
-                                }
-                                break;
-
-                            // String interpolation (`${...}`.)
-                            case "$":
-                                if (stack.at(-1) === "`" && index + 1 < text.length && text[index + 1] === "{") {
-                                    stack.push("${");
-                                    index++;
-                                }
-                                break;
-                        }
-                    }
-
-                    if (index === text.length && inQuote()) {
-                        matched = true;
-
-                        // Roughly extract all tokens that look like css name.
-                        // (E.g. in `className={"a" + (b ? "" : "")}`, both "a" and "b" are matched.)
-                        const wordMatches = text.slice(start).match(/[-\w,@\\:\[\]]+/g);
-                        if (wordMatches != null && wordMatches.length >= 1) {
-                            classesOnAttribute.push(...wordMatches);
-                        }
-                    }
-                }
-
-                if (!matched) {
-                    // Unless any rule is matched, completion isn't provided at the position.
-                    return [];
-                }
-                break;
-            }
+        // Check if the cursor is on class attribute and collect class names on the attribute.
+        const classesOnAttribute = ClassAttributeExtractor.extract(document, position, matcher);
+        if (classesOnAttribute == null) {
+            return [];
         }
 
         const wordRangeAtPosition = document.getWordRangeAtPosition(position, /[-\w,@\\:\[\]]+/);
@@ -284,28 +172,12 @@ const registerCompletionProvider = (
     },
 }, ...completionTriggerChars);
 
-type CompletionMatcherMode =
-    {
-        type: "regexp"
-        classMatchRegex: RegExp
-        classPrefix?: string
-        splitChar?: string
-    } | {
-        type: "javascript"
-    }
-
-const registerDefinitionProvider = (languageSelector: string, classMatchRegex: RegExp) => languages.registerDefinitionProvider(languageSelector, {
+const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttributeMatcher) => languages.registerDefinitionProvider(languageSelector, {
     provideDefinition(document, position, _token) {
-        // Check if the cursor is on a class attribute and retrieve all the css rules in this class attribute
-        {
-            const start: Position = new Position(position.line, 0);
-            const range: Range = new Range(start, position);
-            const text: string = document.getText(range);
-
-            const rawClasses: RegExpMatchArray | null = text.match(classMatchRegex);
-            if (!rawClasses || rawClasses.length === 1) {
-                return;
-            }
+        // Check if the cursor is on class attribute.
+        const classesOnAttribute = ClassAttributeExtractor.extract(document, position, matcher);
+        if (classesOnAttribute == null) {
+            return;
         }
 
         const range: Range | undefined = document.getWordRangeAtPosition(position, /[-\w,@\\:\[\]]+/);
@@ -347,8 +219,8 @@ const registerJavaScriptProviders = (disposables: Disposable[]) =>
     workspace.getConfiguration()
         .get<string[]>(Configuration.JavaScriptLanguages)
         ?.forEach((extension) => {
-            disposables.push(registerCompletionProvider(extension, { type: "javascript" }));
-            disposables.push(registerDefinitionProvider(extension, /class(?:Name)?=(?:\{?["'`])([-\w,@\\:\[\] ]*$)/));
+            disposables.push(registerCompletionProvider(extension, { type: "jsx" }));
+            disposables.push(registerDefinitionProvider(extension, { type: "jsx" }));
         });
 
 function registerEmmetProviders(disposables: Disposable[]) {
