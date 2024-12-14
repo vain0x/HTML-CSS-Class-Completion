@@ -4,7 +4,7 @@ The versions >= 1.21 are fork.
 
 ### Unreleased
 
-(none)
+* Fixed definition provider; it now works consistently with the completion provider
 
 ### 1.22.1 - 2024-08-28
 
