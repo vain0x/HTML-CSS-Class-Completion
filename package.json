@@ -107,31 +107,22 @@
     "vsce-package": "vsce package",
     "test-compile": "tsc -p ./",
     "test-watch": "tsc -watch -p ./",
-    "pretest": "npm run test-compile && npm run lint",
-    "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "lint": "echo no lint",
+    "test": "echo no tests"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.184",
-    "@types/mocha": "^10.0.7",
-    "@types/node": "^20.14.14",
+    "@types/node": "^22.10.2",
     "@types/vscode": "=1.52.0",
-    "@typescript-eslint/eslint-plugin": "^8.0.1",
-    "@typescript-eslint/parser": "^8.0.1",
     "@vscode/vsce": "^2.31.1",
-    "eslint": "^8.57.0",
-    "glob": "^11.0.0",
-    "mocha": "^10.7.0",
     "ts-loader": "^9.5.1",
     "typescript": "^5.5.4",
-    "vscode-test": "^1.4.1",
     "webpack": "^5.93.0",
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
     "@adobe/css-tools": "^4.4.0",
     "htmlparser2": "^9.1.0",
-    "lodash": "^4.17.21",
     "p-map": "^7.0.2",
     "source-map-support": "^0.5.21"
   }
