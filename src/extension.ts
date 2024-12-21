@@ -1,4 +1,3 @@
-import * as _ from "lodash";
 import pMap from "p-map";
 import "source-map-support/register";
 import * as vscode from "vscode";
@@ -86,7 +85,7 @@ async function performCache(): Promise<void> {
             throw new Error("Failed to parse the documents", { cause: err });
         }
 
-        uniqueDefinitions = _.uniqBy(definitions, (def) => def.className);
+        uniqueDefinitions = [...Map.groupBy(definitions, (def) => def.className)].map(([_className, group]) => group[0]);
 
         console.log("Summary:");
         console.log(uris.length, "parseable documents found");
