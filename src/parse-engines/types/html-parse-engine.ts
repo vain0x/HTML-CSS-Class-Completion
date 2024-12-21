@@ -7,6 +7,7 @@ import CssClassExtractor from "../common/css-class-extractor";
 import IParseEngine from "../common/parse-engine";
 import IParseOptions from "../common/parse-options";
 import ISimpleTextDocument from "../common/simple-text-document";
+import logger from "../../logger";
 
 class HtmlParseEngine implements IParseEngine {
     public languageId = "html";
@@ -53,7 +54,7 @@ class HtmlParseEngine implements IParseEngine {
         if (urls.length === 0) {
             // Nothing to do.
         } else if (!options.enableExternalStylesheetSupport) {
-            console.log("External stylesheet support is disabled", urls)
+            logger.debug("External stylesheet support is disabled", urls);
         } else {
             await pMap(urls, async (url) => {
                 const res = await fetch(url);

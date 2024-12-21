@@ -13,6 +13,7 @@ import Notifier from "./notifier";
 import ParseEngineGateway from "./parse-engine-gateway";
 import ClassAttributeExtractor from "./parse-engines/common/class-attribute-extractor";
 import IParseOptions from "./parse-engines/common/parse-options";
+import logger from "./logger"
 
 enum Command {
     Cache = "html-css-class-completion.cache",
@@ -45,16 +46,16 @@ async function performCache(): Promise<void> {
     try {
         notifier.notify("eye", "Looking for CSS classes in the workspace...");
 
-        console.log("Looking for parseable documents...");
+        logger.debug("Looking for parseable documents...");
         const uris: Uri[] = await Fetcher.findAllParseableDocuments();
 
         if (!uris || uris.length === 0) {
-            console.log("Found no documents");
+            logger.debug("Found no documents");
             notifier.statusBarItem.hide();
             return;
         }
 
-        console.log("Found all parseable documents.");
+        logger.debug("Found all parseable documents.", uris);
         const definitions: CssClassDefinition[] = [];
 
         const configuration = vscode.workspace.getConfiguration();
@@ -66,7 +67,7 @@ async function performCache(): Promise<void> {
         let failedLogs = "";
         let failedLogsCount = 0;
 
-        console.log("Parsing documents and looking for CSS class definitions...");
+        logger.debug("Parsing documents and looking for CSS class definitions...");
 
         try {
             await pMap(uris, async (uri) => {
@@ -87,12 +88,17 @@ async function performCache(): Promise<void> {
 
         uniqueDefinitions = [...Map.groupBy(definitions, (def) => def.className)].map(([_className, group]) => group[0]);
 
-        console.log("Summary:");
-        console.log(uris.length, "parseable documents found");
-        console.log(definitions.length, "CSS class definitions found");
-        console.log(uniqueDefinitions.length, "unique CSS class definitions found");
-        console.log(failedLogsCount, "failed attempts to parse. List of the documents:");
-        console.log(failedLogs);
+        let summary = "Summary:\n";
+        summary += `${uris.length} parseable documents found\n`;
+        summary += `${definitions.length} CSS class definitions found\n`;
+        summary += `${uniqueDefinitions.length} unique CSS class definitions found\n`;
+        summary += `${failedLogsCount} failed attempts to parse. List of the documents:\n`;
+        summary += failedLogs;
+        if (failedLogsCount !== 0) {
+            logger.warn(summary);
+        } else {
+            logger.info(summary);
+        }
 
         notifier.notify("zap", "CSS classes cached (click to cache again)");
     } catch (err) {
@@ -248,6 +254,15 @@ function unregisterProviders(disposables: Disposable[]) {
 }
 
 export async function activate(context: ExtensionContext): Promise<void> {
+    const outputChannel = vscode.window.createOutputChannel("html-css-class-completion", { log: true });
+    logger.setOutput(outputChannel);
+    context.subscriptions.push({
+        dispose: () => {
+            logger.setOutput(null);
+            outputChannel.dispose();
+        },
+    });
+
     const disposables: Disposable[] = [];
     workspace.onDidChangeConfiguration(async (e) => {
         try {
@@ -279,7 +294,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
             }
         } catch (err) {
             const newErr = new Error("Failed to automatically reload the extension after the configuration change", { cause: err });
-            console.error(newErr);
+            logger.error("Error during configuration change", newErr);
             window.showErrorMessage(newErr.message);
         }
     }, null, disposables);
@@ -290,7 +305,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
             await cache();
         } catch (err) {
             const newErr = new Error("Failed to cache the CSS classes in the workspace", { cause: err });
-            console.error(newErr);
+            logger.error("Error during cache (command)", newErr);
             window.showErrorMessage(newErr.message);
         }
     }));
@@ -313,7 +328,7 @@ export async function activate(context: ExtensionContext): Promise<void> {
         await cache();
     } catch (err) {
         const newErr = new Error("Failed to cache the CSS classes in the workspace for the first time", { cause: err });
-        console.error(newErr);
+        logger.error("Error during cache (initial)", newErr);
         window.showErrorMessage(newErr.message);
     }
 }
