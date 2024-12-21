@@ -64,7 +64,7 @@ async function performCache(): Promise<void> {
         };
 
         let filesParsed = 0;
-        let failedLogs = "";
+        let failedLogs: { uri: Uri, err: unknown }[] = [];
         let failedLogsCount = 0;
 
         logger.debug("Parsing documents and looking for CSS class definitions...");
@@ -73,8 +73,8 @@ async function performCache(): Promise<void> {
             await pMap(uris, async (uri) => {
                 try {
                     Array.prototype.push.apply(definitions, await ParseEngineGateway.callParser(uri, parseOptions));
-                } catch (error) {
-                    failedLogs += `${uri.path}\n`;
+                } catch (err) {
+                    failedLogs.push({ uri, err });
                     failedLogsCount++;
                 }
                 filesParsed++;
@@ -92,11 +92,12 @@ async function performCache(): Promise<void> {
         summary += `${uris.length} parseable documents found\n`;
         summary += `${definitions.length} CSS class definitions found\n`;
         summary += `${uniqueDefinitions.length} unique CSS class definitions found\n`;
-        summary += `${failedLogsCount} failed attempts to parse. List of the documents:\n`;
-        summary += failedLogs;
         if (failedLogsCount !== 0) {
+            summary += `${failedLogsCount} failed attempts to parse. List of the documents:\n`;
+            summary += failedLogs.map((x) => `${x.uri}: ${x.err}`).join("\n");
             logger.warn(summary);
         } else {
+            summary += "All success."
             logger.info(summary);
         }
 
