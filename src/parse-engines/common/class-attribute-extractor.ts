@@ -27,7 +27,7 @@ class ClassAttributeExtractor {
       case "jsx": {
         // Pattern that matches the text between `class` attribute name and the cursor,
         // e.g. `className={"table__row md:w-[200px] `.
-        const REGEXP = /class(?:Name)?=(?:{?["'`])([\w-@:\/ ]*$)/;
+        const REGEXP = /class(?:Name)?=(?:{?["'`])([-\w,@\\:\[\] ]*$)/;
 
         let matched = false;
 
