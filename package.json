@@ -98,6 +98,7 @@
     "type": "git",
     "url": "https://github.com/vain0x/HTML-CSS-Class-Completion"
   },
+  "type": "module",
   "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run package",

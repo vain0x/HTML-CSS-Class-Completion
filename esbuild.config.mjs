@@ -4,7 +4,7 @@ const ctx = await context({
   entryPoints: ["src/extension.ts"],
   outfile: "dist/extension.js",
   bundle: true,
-  format: "cjs",
+  format: "esm",
 
   platform: "node",
   target: "node24",
