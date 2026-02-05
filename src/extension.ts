@@ -1,5 +1,4 @@
 import pMap from "p-map";
-import "source-map-support/register";
 import * as vscode from "vscode";
 import {
     commands, CompletionItem, CompletionItemKind, Disposable,

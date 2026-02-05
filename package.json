@@ -101,9 +101,10 @@
   "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "webpack --config ./build/node-extension.webpack.config.js",
-    "watch": "webpack --watch --config ./build/node-extension.webpack.config.js",
-    "package": "webpack --mode production --devtool hidden-source-map --config ./build/node-extension.webpack.config.js",
+    "compile": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "package": "node esbuild.config.mjs",
     "vsce-package": "vsce package",
     "test-compile": "tsc -p ./",
     "test-watch": "tsc -watch -p ./",
@@ -114,15 +115,12 @@
     "@types/node": "^22.10.2",
     "@types/vscode": "^1.96.0",
     "@vscode/vsce": "^3.2.1",
-    "ts-loader": "^9.5.1",
-    "typescript": "^5.7.2",
-    "webpack": "^5.97.1",
-    "webpack-cli": "^6.0.1"
+    "esbuild": "^0.27.2",
+    "typescript": "^5.7.2"
   },
   "dependencies": {
     "@adobe/css-tools": "^4.4.0",
     "htmlparser2": "^9.1.0",
-    "p-map": "^7.0.2",
-    "source-map-support": "^0.5.21"
+    "p-map": "^7.0.2"
   }
 }

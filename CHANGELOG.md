@@ -8,6 +8,8 @@ The versions >= 1.21 are fork.
 * Fixed logging; it now writes to the Output panel (rather than developer tools) and shows error details
 * Upgraded dependencies
 * Removed unused dependencies (lister, testing)
+* Internals
+    * Migrate webpack to esbuild (its faster)
 
 ### 1.22.1 - 2024-08-28
 
