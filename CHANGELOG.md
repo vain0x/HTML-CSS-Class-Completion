@@ -10,6 +10,7 @@ The versions >= 1.21 are fork.
 * Removed unused dependencies (lister, testing)
 * Internals
     * Migrate webpack to esbuild (its faster)
+    * `@vscode/vsce` upgraded
 
 ### 1.22.1 - 2024-08-28
 
