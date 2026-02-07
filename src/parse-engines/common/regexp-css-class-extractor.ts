@@ -8,7 +8,7 @@ export default class RegexpCssClassExtractor {
      */
     public static extract(code: string, uri: vscode.Uri | undefined): CssClassDefinition[] {
         // matches e.g. `.w-\[120px\]`
-        const classNameRegex = /\.((?:[-\w]|\\.)+)/g;
+        const classNameRegex = /\.((?:[-_\w]|\\.)+)/g;
 
         const definitions: CssClassDefinition[] = [];
 

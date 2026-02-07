@@ -5,6 +5,9 @@ The versions >= 1.21 are fork.
 ### Unreleased
 
 * Added regexp-based CSSParser
+* Updated regexp
+    * class attributes now match with `_`, `#`, `()`
+    * class definitions now match with `_`
 * Fixed definition provider; it now works consistently with the completion provider
 * Fixed logging; it now writes to the Output panel (rather than developer tools) and shows error details
 * Upgraded dependencies

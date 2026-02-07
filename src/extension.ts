@@ -151,7 +151,7 @@ const registerCompletionProvider = (
             return [];
         }
 
-        const wordRangeAtPosition = document.getWordRangeAtPosition(position, /[-\w,@\\:\[\]]+/);
+        const wordRangeAtPosition = document.getWordRangeAtPosition(position, /[-_\w,:/#@\(\)\[\]]+/);
 
         // Creates a collection of CompletionItem based on the classes already cached
         const completionItems = uniqueDefinitions.map((definition) => {
@@ -190,7 +190,7 @@ const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttr
             return;
         }
 
-        const range: Range | undefined = document.getWordRangeAtPosition(position, /[-\w,@\\:\[\]]+/);
+        const range: Range | undefined = document.getWordRangeAtPosition(position, /[-_\w,:/#@\(\)\[\]]+/);
         if (range == null) {
             return;
         }
@@ -212,7 +212,7 @@ const registerHTMLProviders = (disposables: Disposable[]) =>
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
         ?.forEach((extension) => {
-            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-\w,@\\:\[\] ]*$)/ }));
+            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }));
         });
 
 const registerCSSProviders = (disposables: Disposable[]) => {
@@ -232,7 +232,7 @@ const registerCSSProviders = (disposables: Disposable[]) => {
             // The @apply rule was a CSS proposal which has since been abandoned,
             // check the proposal for more info: http://tabatkins.github.io/specs/css-apply-rule/
             // Its support should probably be removed
-            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-\w,@\\:\[\] ])*$)/ }, "."));
+            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-_\w,:/#@\(\)\[\] ])*$)/ }, "."));
         });
 }
 
