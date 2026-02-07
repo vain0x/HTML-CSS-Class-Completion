@@ -8,11 +8,15 @@ import {
 import type ClassAttributeMatcher from "./common/class-attribute-matcher";
 import CssClassDefinition from "./common/css-class-definition";
 import Fetcher from "./fetcher";
+import logger from "./logger";
 import Notifier from "./notifier";
 import ParseEngineGateway from "./parse-engine-gateway";
 import ClassAttributeExtractor from "./parse-engines/common/class-attribute-extractor";
+import type IParseEngine from "./parse-engines/common/parse-engine";
 import IParseOptions from "./parse-engines/common/parse-options";
-import logger from "./logger"
+import ParseEngineRegistry from "./parse-engines/parse-engine-registry";
+import CssParseEngine from "./parse-engines/types/css-parse-engine";
+import RegexpCssParseEngine from "./parse-engines/types/regexp-css-parse-engine";
 
 enum Command {
     Cache = "html-css-class-completion.cache",
@@ -26,6 +30,7 @@ enum Configuration {
     HTMLLanguages = "html-css-class-completion.HTMLLanguages",
     CSSLanguages = "html-css-class-completion.CSSLanguages",
     JavaScriptLanguages = "html-css-class-completion.JavaScriptLanguages",
+    CSSParser = "html-css-class-completion.CSSParser",
 }
 
 const notifier: Notifier = new Notifier(Command.Cache);
@@ -210,7 +215,17 @@ const registerHTMLProviders = (disposables: Disposable[]) =>
             disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-\w,@\\:\[\] ]*$)/ }));
         });
 
-const registerCSSProviders = (disposables: Disposable[]) =>
+const registerCSSProviders = (disposables: Disposable[]) => {
+    const parser = workspace.getConfiguration()
+        .get<string>(Configuration.CSSParser);
+    let engine: IParseEngine | undefined;
+    if (parser === "regexp") {
+        engine = new RegexpCssParseEngine();
+    } else { // css-tools
+        engine = new CssParseEngine();
+    }
+    ParseEngineRegistry.setParseEngine(engine);
+
     workspace.getConfiguration()
         .get<string[]>(Configuration.CSSLanguages)
         ?.forEach((extension) => {
@@ -219,6 +234,7 @@ const registerCSSProviders = (disposables: Disposable[]) =>
             // Its support should probably be removed
             disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-\w,@\\:\[\] ])*$)/ }, "."));
         });
+}
 
 const registerJavaScriptProviders = (disposables: Disposable[]) =>
     workspace.getConfiguration()
@@ -283,7 +299,8 @@ export async function activate(context: ExtensionContext): Promise<void> {
                 registerHTMLProviders(htmlDisposables);
             }
 
-            if (e.affectsConfiguration(Configuration.CSSLanguages)) {
+            if (e.affectsConfiguration(Configuration.CSSLanguages)
+                || e.affectsConfiguration(Configuration.CSSParser)) {
                 unregisterProviders(cssDisposables);
                 registerCSSProviders(cssDisposables);
             }

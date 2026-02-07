@@ -13,6 +13,16 @@ class ParseEngineRegistry {
         return foundParseEngine;
     }
 
+    public static setParseEngine(engine: IParseEngine) {
+        const index = ParseEngineRegistry.registry.findIndex((value) => value.languageId === engine.languageId)
+
+        if (index >= 0) {
+            ParseEngineRegistry.registry[index] = engine;
+        } else {
+            ParseEngineRegistry.registry.push(engine);
+        }
+    }
+
     public static get supportedLanguagesIds(): string[] {
         if (!ParseEngineRegistry.languagesIds) {
             ParseEngineRegistry.languagesIds = ParseEngineRegistry.registry.map(
