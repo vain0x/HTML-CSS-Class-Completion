@@ -18,7 +18,7 @@ async function readFile(file: string): Promise<string> {
     });
 }
 
-async function createSimpleTextDocument(uri: vscode.Uri): Promise<ISimpleTextDocument> {
+export async function createSimpleTextDocument(uri: vscode.Uri): Promise<ISimpleTextDocument> {
     const text = await readFile(uri.fsPath);
     const simpleDocument: ISimpleTextDocument = {
         languageId: uri.fsPath.split(".").pop() || "",

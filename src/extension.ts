@@ -10,7 +10,7 @@ import CssClassDefinition from "./common/css-class-definition";
 import Fetcher from "./fetcher";
 import logger from "./logger";
 import Notifier from "./notifier";
-import ParseEngineGateway from "./parse-engine-gateway";
+import ParseEngineGateway, { createSimpleTextDocument } from "./parse-engine-gateway";
 import ClassAttributeExtractor from "./parse-engines/common/class-attribute-extractor";
 import type IParseEngine from "./parse-engines/common/parse-engine";
 import IParseOptions from "./parse-engines/common/parse-options";
@@ -211,13 +211,97 @@ const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttr
     },
 });
 
+const registerReferenceProvider = (documentSelector: vscode.DocumentSelector) => languages.registerReferenceProvider(documentSelector, {
+    async provideReferences(document, position, context, _token) {
+        logger.info("reference: triggered", document.uri.fsPath, position.line);
+        const target = uniqueDefinitions.find((definition) => {
+            return definition.location
+                && definition.location.uri.toString() === document.uri.toString()
+                && definition.location.range.contains(position);
+        });
+        if (!target) {
+            logger.info("No target to find references.");
+            return [];
+        }
+
+        const targetName = target?.className;
+        logger.info("references: target=", targetName);
+
+        const references: Location[] = [];
+
+        const matcherRegistry: { [languageId: string]: ClassAttributeMatcher } = {};
+        workspace.getConfiguration()
+            .get<string[]>(Configuration.HTMLLanguages)
+            ?.forEach((languageId) => {
+                matcherRegistry[languageId] = { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ };
+            });
+        workspace.getConfiguration()
+            .get<string[]>(Configuration.CSSLanguages)
+            ?.forEach((languageId) => {
+                // TODO: definition extractor
+                // matcherRegistry[languageId] = { type: "jsx" };
+            });
+        workspace.getConfiguration()
+            .get<string[]>(Configuration.JavaScriptLanguages)
+            ?.forEach((languageId) => {
+                matcherRegistry[languageId] = { type: "jsx" };
+            });
+        logger.info("registry=", Object.entries(matcherRegistry).map(([k, v]) => `${k}->${v.type}`).join("\n"));
+
+        const cssLanguages = workspace.getConfiguration().get<string[]>(Configuration.CSSLanguages) ?? [];
+
+        const uris = await Fetcher.findAllParseableDocuments();
+
+        await pMap(uris, async (uri) => {
+            try {
+                const textDocument = await vscode.workspace.openTextDocument(uri);
+                // const textDocument = await createSimpleTextDocument(uri);
+                logger.info("parsable:", uri.fsPath, "as", textDocument.languageId);
+
+                if (!context.includeDeclaration && cssLanguages.includes(textDocument.languageId)) {
+                    return;
+                }
+
+                // FIXME: textDocument.languageId just extracts its extension, which is incorrect
+                let languageId = textDocument.languageId;
+                if (languageId === "jsx") languageId = "javascriptreact";
+                if (languageId === "tsx") languageId = "typescriptreact";
+
+                const matcher = matcherRegistry[languageId];
+                if (!matcher) {
+                    logger.debug("no matcher for ", languageId, uri.fsPath);
+                    return;
+                }
+
+                const allTokens = ClassAttributeExtractor.findAll(textDocument, matcher);
+                for (const token of allTokens) {
+                    if (token.className === targetName) {
+                        references.push({
+                            uri,
+                            range: token.range,
+                        });
+                    }
+                }
+            } catch (err) {
+                logger.error(`css-class-completion: Find references in '${document.uri.fsPath}'`, err);
+            }
+        });
+        return references;
+    },
+});
+
 const registerHTMLProviders = (disposables: Disposable[]) =>
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
-        ?.forEach((extension) => {
+        ?.forEach((languageId) => {
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }));
+                disposables.push(registerCompletionProvider(languageId, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }));
+            }
+
+            const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
+            if (referencesEnabled) {
+                disposables.push(registerReferenceProvider({ language: languageId }));
             }
         });
 
@@ -234,13 +318,18 @@ const registerCSSProviders = (disposables: Disposable[]) => {
 
     workspace.getConfiguration()
         .get<string[]>(Configuration.CSSLanguages)
-        ?.forEach((extension) => {
+        ?.forEach((languageId) => {
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
                 // The @apply rule was a CSS proposal which has since been abandoned,
                 // check the proposal for more info: http://tabatkins.github.io/specs/css-apply-rule/
                 // Its support should probably be removed
-                disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-_\w,:/#@\(\)\[\] ])*$)/ }, "."));
+                disposables.push(registerCompletionProvider(languageId, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-_\w,:/#@\(\)\[\] ])*$)/ }, "."));
+            }
+
+            const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
+            if (referencesEnabled) {
+                disposables.push(registerReferenceProvider({ language: languageId }));
             }
         });
 }
@@ -248,15 +337,20 @@ const registerCSSProviders = (disposables: Disposable[]) => {
 const registerJavaScriptProviders = (disposables: Disposable[]) => {
     workspace.getConfiguration()
         .get<string[]>(Configuration.JavaScriptLanguages)
-        ?.forEach((extension) => {
+        ?.forEach((languageId) => {
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                disposables.push(registerCompletionProvider(extension, { type: "jsx" }));
+                disposables.push(registerCompletionProvider(languageId, { type: "jsx" }));
             }
 
             const definitionsEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.definitions ?? true;
             if (definitionsEnabled) {
-                disposables.push(registerDefinitionProvider(extension, { type: "jsx" }));
+                disposables.push(registerDefinitionProvider(languageId, { type: "jsx" }));
+            }
+
+            const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
+            if (referencesEnabled) {
+                disposables.push(registerReferenceProvider({ language: languageId }));
             }
         });
 }
