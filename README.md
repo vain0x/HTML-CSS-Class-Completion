@@ -20,6 +20,7 @@
     - By default [@adobe/css-tools](https://github.com/adobe/css-tools) is used (AST-output parser.) However, it does not support CSS Nesting (see the related issue: [css-tools not supporting css nesting](https://github.com/adobe/css-tools/issues/122).)
         - If the parser fails to handle a CSS file correctly, class extraction will not work.
     - The regexp-based parser extracts class names using simple pattern matching, so it does not break when encountering newer CSS syntax. While it's less precise, it's somehow more resilient.
+- Configuration `"html-css-class-completion.LanguageFeatures"`: Opt-out individual features.
 
 # IntelliSense for CSS class names in HTML
 

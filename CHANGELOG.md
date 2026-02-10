@@ -5,6 +5,7 @@ The versions >= 1.21 are fork.
 ### Unreleased
 
 * Added regexp-based CSSParser
+* Added LanguageFeatures option to opt-out individual features
 * Updated regexp
     * class attributes now match with `_`, `#`, `()`
     * class definitions now match with `_`

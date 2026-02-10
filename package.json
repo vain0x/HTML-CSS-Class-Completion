@@ -97,6 +97,26 @@
               "javascriptreact",
               "typescriptreact"
             ]
+          },
+          "html-css-class-completion.LanguageFeatures": {
+            "type": "object",
+            "description": "Language features to be enabled (for individual opt-out)",
+            "properties": {
+              "completion": {
+                "type": "boolean",
+                "description": "Code completion feature CSS class names in class/className attributes",
+                "default": true
+              },
+              "definitions": {
+                "type": "boolean",
+                "description": "Go to definitions feature navigating to CSS class definition",
+                "default": true
+              }
+            },
+            "default": {
+              "completion": true,
+              "definitions": true
+            }
           }
         }
       }

@@ -17,6 +17,8 @@ import IParseOptions from "./parse-engines/common/parse-options";
 import ParseEngineRegistry from "./parse-engines/parse-engine-registry";
 import CssParseEngine from "./parse-engines/types/css-parse-engine";
 import RegexpCssParseEngine from "./parse-engines/types/regexp-css-parse-engine";
+import { config } from "process";
+import type LanguageFeaturesOption from "./common/language-features-option";
 
 enum Command {
     Cache = "html-css-class-completion.cache",
@@ -31,6 +33,7 @@ enum Configuration {
     CSSLanguages = "html-css-class-completion.CSSLanguages",
     JavaScriptLanguages = "html-css-class-completion.JavaScriptLanguages",
     CSSParser = "html-css-class-completion.CSSParser",
+    LanguageFeatures = "html-css-class-completion.LanguageFeatures",
 }
 
 const notifier: Notifier = new Notifier(Command.Cache);
@@ -206,13 +209,16 @@ const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttr
 
         return definition.location as Location;
     },
-})
+});
 
 const registerHTMLProviders = (disposables: Disposable[]) =>
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
         ?.forEach((extension) => {
-            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }));
+            const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
+            if (completionEnabled) {
+                disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }));
+            }
         });
 
 const registerCSSProviders = (disposables: Disposable[]) => {
@@ -229,27 +235,41 @@ const registerCSSProviders = (disposables: Disposable[]) => {
     workspace.getConfiguration()
         .get<string[]>(Configuration.CSSLanguages)
         ?.forEach((extension) => {
-            // The @apply rule was a CSS proposal which has since been abandoned,
-            // check the proposal for more info: http://tabatkins.github.io/specs/css-apply-rule/
-            // Its support should probably be removed
-            disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-_\w,:/#@\(\)\[\] ])*$)/ }, "."));
+            const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
+            if (completionEnabled) {
+                // The @apply rule was a CSS proposal which has since been abandoned,
+                // check the proposal for more info: http://tabatkins.github.io/specs/css-apply-rule/
+                // Its support should probably be removed
+                disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-_\w,:/#@\(\)\[\] ])*$)/ }, "."));
+            }
         });
 }
 
-const registerJavaScriptProviders = (disposables: Disposable[]) =>
+const registerJavaScriptProviders = (disposables: Disposable[]) => {
     workspace.getConfiguration()
         .get<string[]>(Configuration.JavaScriptLanguages)
         ?.forEach((extension) => {
-            disposables.push(registerCompletionProvider(extension, { type: "jsx" }));
-            disposables.push(registerDefinitionProvider(extension, { type: "jsx" }));
+            const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
+            if (completionEnabled) {
+                disposables.push(registerCompletionProvider(extension, { type: "jsx" }));
+            }
+
+            const definitionsEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.definitions ?? true;
+            if (definitionsEnabled) {
+                disposables.push(registerDefinitionProvider(extension, { type: "jsx" }));
+            }
         });
+}
 
 function registerEmmetProviders(disposables: Disposable[]) {
     const emmetRegex = /(?=\.)([\w-@:\/. ]*$)/;
 
     const registerProviders = (modes: string[]) => {
         modes.forEach((language) => {
-            disposables.push(registerCompletionProvider(language, { type: "regexp", classMatchRegex: emmetRegex, splitChar: "" }, "."));
+            const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
+            if (completionEnabled) {
+                disposables.push(registerCompletionProvider(language, { type: "regexp", classMatchRegex: emmetRegex, splitChar: "" }, "."));
+            }
         });
     };
 
@@ -288,24 +308,25 @@ export async function activate(context: ExtensionContext): Promise<void> {
                 await cache();
             }
 
-            if (e.affectsConfiguration(Configuration.EnableEmmetSupport)) {
+            if (e.affectsConfiguration(Configuration.EnableEmmetSupport) || e.affectsConfiguration(Configuration.LanguageFeatures)) {
                 const isEnabled = workspace.getConfiguration()
                     .get<boolean>(Configuration.EnableEmmetSupport);
                 isEnabled ? registerEmmetProviders(emmetDisposables) : unregisterProviders(emmetDisposables);
             }
 
-            if (e.affectsConfiguration(Configuration.HTMLLanguages)) {
+            if (e.affectsConfiguration(Configuration.HTMLLanguages) || e.affectsConfiguration(Configuration.LanguageFeatures)) {
                 unregisterProviders(htmlDisposables);
                 registerHTMLProviders(htmlDisposables);
             }
 
             if (e.affectsConfiguration(Configuration.CSSLanguages)
-                || e.affectsConfiguration(Configuration.CSSParser)) {
+                || e.affectsConfiguration(Configuration.CSSParser)
+                || e.affectsConfiguration(Configuration.LanguageFeatures)) {
                 unregisterProviders(cssDisposables);
                 registerCSSProviders(cssDisposables);
             }
 
-            if (e.affectsConfiguration(Configuration.JavaScriptLanguages)) {
+            if (e.affectsConfiguration(Configuration.JavaScriptLanguages) || e.affectsConfiguration(Configuration.LanguageFeatures)) {
                 unregisterProviders(javaScriptDisposables);
                 registerJavaScriptProviders(javaScriptDisposables);
             }
