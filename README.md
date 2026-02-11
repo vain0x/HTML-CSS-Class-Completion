@@ -3,7 +3,7 @@
 > This repository has been forked from [the upstream](https://github.com/zignd/HTML-CSS-Class-Completion).
 >
 > Feature is almost equivalent. Some improvements and maintenance are made.
-> See CHANGELOG and commits for more details.
+> See [CHANGELOG](https://github.com/vain0x/HTML-CSS-Class-Completion/blob/develop/CHANGELOG.md) and commits for more details.
 >
 > Info:
 >
