@@ -7,7 +7,7 @@ export default class CssClassExtractor {
      * @description Extracts class names from CSS AST
      */
     public static extract(ast: css.CssStylesheetAST, uri: vscode.Uri | undefined): CssClassDefinition[] {
-        const classNameRegex = /[.]((?:[-\w]|\\.)+)/g;
+        const classNameRegex = /[.]((?:[-_\w]|\\.)+)/g;
 
         const definitions: CssClassDefinition[] = [];
 

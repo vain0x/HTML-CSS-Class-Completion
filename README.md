@@ -10,6 +10,18 @@
 > - Final upstream commit: `2020-12-19 20:16:02 -0300 f6bdfa0`
 > - First fork commit: `2022-09-05 00:08:50 +0900 d3672ba`
 
+### Known issues of the Fork
+
+- CSS that contains `@apply` doesn't get parsed correctly due to the parser change.
+
+### Fork-only features
+
+- Configuration `"html-css-class-completion.CSSParser": "regexp"`: Uses the regexp-based CSS class definition extractor.
+    - By default [@adobe/css-tools](https://github.com/adobe/css-tools) is used (AST-output parser.) However, it does not support CSS Nesting (see the related issue: [css-tools not supporting css nesting](https://github.com/adobe/css-tools/issues/122).)
+        - If the parser fails to handle a CSS file correctly, class extraction will not work.
+    - The regexp-based parser extracts class names using simple pattern matching, so it does not break when encountering newer CSS syntax. While it's less precise, it's somehow more resilient.
+- Configuration `"html-css-class-completion.LanguageFeatures"`: Opt-out individual features.
+
 # IntelliSense for CSS class names in HTML
 
 A Visual Studio Code extension that provides CSS class name completion for the HTML `class` attribute based on the definitions found in your workspace or external files referenced through the `link` element.
