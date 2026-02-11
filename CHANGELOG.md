@@ -4,6 +4,10 @@ The versions >= 1.21 are fork.
 
 ### Unreleased
 
+None
+
+### 1.23.0 - 2026-02-11
+
 * Added regexp-based CSSParser
 * Added LanguageFeatures option to opt-out individual features
 * Updated regexp
@@ -12,12 +16,11 @@ The versions >= 1.21 are fork.
 * Fixed definition provider; it now works consistently with the completion provider
 * Fixed logging; it now writes to the Output panel (rather than developer tools) and shows error details
 * Upgraded dependencies
-* Removed unused dependencies (lister, testing)
+    * Removed unused dependencies (linter, testing)
 * Internals
-    * Migrate webpack to esbuild (its faster)
+    * Migrated webpack to esbuild (its faster)
     * Switched to ESModule
     * `.vscodeignore` written as allowlist (to avoid including git-untracked files)
-    * `@vscode/vsce` upgraded
 
 ### 1.22.1 - 2024-08-28
 
