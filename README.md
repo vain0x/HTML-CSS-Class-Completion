@@ -16,6 +16,8 @@
 
 ### Fork-only features
 
+- Configuration `"html-css-class-completion.enableExternalStylesheetSupport"` (defaults to `false`)
+    - Opt-in flag to fetch external stylesheets referenced through `link` elements in HTML files
 - Configuration `"html-css-class-completion.CSSParser": "regexp"`: Uses the regexp-based CSS class definition extractor.
     - By default [@adobe/css-tools](https://github.com/adobe/css-tools) is used (AST-output parser.) However, it does not support CSS Nesting (see the related issue: [css-tools not supporting css nesting](https://github.com/adobe/css-tools/issues/122).)
         - If the parser fails to handle a CSS file correctly, class extraction will not work.
