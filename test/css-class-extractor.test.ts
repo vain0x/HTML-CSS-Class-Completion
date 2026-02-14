@@ -1,12 +1,12 @@
-import * as css from "@adobe/css-tools";
 import assert from "node:assert";
 import { suite, test } from "node:test";
+import * as postcss from "postcss";
 import * as vscode from "vscode";
 import CssClassExtractor from "../src/parse-engines/common/css-class-extractor";
 
 /** Parse CSS and extract class definitions. */
 function extract(code: string, uri?: vscode.Uri) {
-  return CssClassExtractor.extract(css.parse(code), uri);
+  return CssClassExtractor.extract(postcss.parse(code), uri);
 }
 
 /** Shorthand to get just the class names. */
@@ -41,11 +41,8 @@ suite("CssClassExtractor", () => {
     assert.ok(loc, "location should be defined");
     assert.equal(loc.range.start.line, 0);
     assert.equal(loc.range.start.character, 0);
-  });
-
-  test("returns undefined location when uri is not provided", () => {
-    const defs = extract(".foo {}");
-    assert.equal(defs[0].location, undefined);
+    assert.equal(loc.range.end.line, 0);
+    assert.equal(loc.range.end.character, 4); // ".foo"
   });
 
   test("location reflects correct line numbers", () => {
@@ -58,6 +55,28 @@ suite("CssClassExtractor", () => {
     assert.equal(defs.length, 2);
     assert.equal(defs[0].location!.range.start.line, 0);
     assert.equal(defs[1].location!.range.start.line, 1);
+  });
+
+  test("location points to individual class in compound selector", () => {
+    const uri = vscode.Uri.file("/test.css");
+    const defs = extract(".foo.bar {}", uri);
+    assert.equal(defs.length, 2);
+    // .foo at column 0-4, .bar at column 4-8
+    assert.equal(defs[0].location!.range.start.character, 0);
+    assert.equal(defs[0].location!.range.end.character, 4);
+    assert.equal(defs[1].location!.range.start.character, 4);
+    assert.equal(defs[1].location!.range.end.character, 8);
+  });
+
+  test("location points to individual class in selector list", () => {
+    const uri = vscode.Uri.file("/test.css");
+    // ".foo, .bar {}"
+    const defs = extract(".foo, .bar {}", uri);
+    assert.equal(defs.length, 2);
+    assert.equal(defs[0].location!.range.start.character, 0);
+    assert.equal(defs[0].location!.range.end.character, 4);
+    assert.equal(defs[1].location!.range.start.character, 6);
+    assert.equal(defs[1].location!.range.end.character, 10);
   });
 
   // --- Comments ---
@@ -111,10 +130,10 @@ suite("CssClassExtractor", () => {
 
   // --- CSS nesting ---
 
-  test.skip("extracts class names in css nesting", () => {
-    const defs = extract(".foo { & .bar {} }");
-    assert.equal(defs.length, 2);
-    assert.equal(defs[0].className, "foo");
-    assert.equal(defs[1].className, "bar");
+  test("extracts class names in css nesting", () => {
+    const definitions = extract(".foo { & .bar {} }");
+    assert.equal(definitions.length, 2);
+    assert.equal(definitions[0].className, "foo");
+    assert.equal(definitions[1].className, "bar");
   });
 });

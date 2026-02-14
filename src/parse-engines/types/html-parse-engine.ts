@@ -1,5 +1,5 @@
-import * as css from "@adobe/css-tools";
 import * as html from "htmlparser2";
+import * as postcss from "postcss";
 import pMap from "p-map";
 import * as vscode from "vscode";
 import CssClassDefinition from "../../common/css-class-definition";
@@ -43,7 +43,7 @@ class HtmlParseEngine implements IParseEngine {
             },
             ontext: (text: string) => {
                 if (tag === "style") {
-                    definitions.push(...CssClassExtractor.extract(css.parse(text), uri));
+                    definitions.push(...CssClassExtractor.extract(postcss.parse(text), uri));
                 }
             },
         });
@@ -69,7 +69,7 @@ class HtmlParseEngine implements IParseEngine {
                 } catch (err) {
                     // Tolerable.
                 }
-                definitions.push(...CssClassExtractor.extract(css.parse(content), uri));
+                definitions.push(...CssClassExtractor.extract(postcss.parse(content), uri));
             }, { concurrency: 10 });
         }
 

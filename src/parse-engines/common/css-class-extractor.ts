@@ -1,4 +1,4 @@
-import * as css from "@adobe/css-tools";
+import * as postcss from "postcss";
 import * as vscode from "vscode";
 import CssClassDefinition from "../../common/css-class-definition";
 
@@ -6,63 +6,45 @@ export default class CssClassExtractor {
     /**
      * @description Extracts class names from CSS AST
      */
-    public static extract(ast: css.CssStylesheetAST, uri: vscode.Uri | undefined): CssClassDefinition[] {
+    public static extract(ast: postcss.Root, uri: vscode.Uri | undefined): CssClassDefinition[] {
         const classNameRegex = /[.]((?:[-_\w]|\\.)+)/g;
 
         const definitions: CssClassDefinition[] = [];
 
-        // go through each of the selectors of the current rule
-        const addRule = (rule: css.CssRuleAST, comments: string[] | undefined) => {
-            rule.selectors?.forEach((selector: string) => {
-                let item: RegExpExecArray | null = classNameRegex.exec(selector);
-                while (item) {
-                    const definition = new CssClassDefinition(item[1].replaceAll("\\", ""));
-                    definition.comments = comments;
-                    definition.location = toLocation(rule, uri);
-                    definitions.push(definition);
+        ast.walkRules((rule) => {
+            const comments = collectComments(rule);
 
-                    item = classNameRegex.exec(selector);
-                }
-            });
-        };
+            const selector = rule.selector;
+            while (true) {
+                const item = classNameRegex.exec(selector);
+                if (!item) break;
 
-        // go through each of the rules or media query...
-        ast.stylesheet?.rules.forEach((rule: css.CssAtRuleAST, index) => {
-            // ...of type rule
-            if (rule.type === "rule") {
-                addRule(rule, collectComments(ast.stylesheet!.rules, index));
-            }
-            // of type media queries (and layers)
-            if (rule.type === "media" || rule.type === "layer") {
-                // go through rules inside media queries
-                rule.rules?.forEach((r: css.CssAtRuleAST, i) => {
-                    if (r.type === "rule") {
-                        addRule(r, collectComments(rule.rules!, i));
-                    }
-                });
+                const className = item[1].replaceAll("\\", ""); // unescaped
+                const definition = new CssClassDefinition(className);
+                definition.comments = comments;
+                definition.location = computeClassLocation(rule, item.index, item[0].length, uri);
+                definitions.push(definition);
             }
         });
+
         return definitions;
     }
 }
 
-function collectComments(rules: (css.CssRuleAST | css.CssCommentAST | css.CssAtRuleAST)[], index: number): string[] | undefined {
-    if (!rules || index === 0) {
-        return undefined;
-    }
+/** Collect documentation comments attached to the rule. */
+function collectComments(rule: postcss.Rule): string[] | undefined {
+    const comments: string[] = [];
 
-    const comments = [];
-    for (let j = index - 1; j >= 0; j--) {
-        const node = rules[j] as { comment?: string };
-        if (!node.comment) {
-            break;
-        }
-
+    let node: postcss.ChildNode | undefined = rule.prev();
+    while (node && node.type === "comment") {
+        const text = node.text;
         // Only if it looks like `/** ... */`.
-        if (node.comment.startsWith("*")) {
-            comments.push(node.comment.slice(1).trim());
+        if (text.startsWith("*")) {
+            comments.push(text.slice(1).trim());
         }
+        node = node.prev();
     }
+
     if (comments.length === 0) {
         return undefined;
     }
@@ -71,29 +53,25 @@ function collectComments(rules: (css.CssRuleAST | css.CssCommentAST | css.CssAtR
     return comments;
 }
 
-const toLocation = (node: css.CssCommonPositionAST, uri: vscode.Uri | undefined) => {
-    if (!uri || !node.position) {
+/**
+ * Computes the location of a class name match within a rule's selector.
+ */
+function computeClassLocation(
+    rule: postcss.Rule,
+    offset: number,
+    length: number,
+    uri: vscode.Uri | undefined,
+): vscode.Location | undefined {
+    if (!uri || !rule.source?.start) {
         return undefined;
     }
 
-    const start = node.position.start && toPosition(node.position.start);
-    if (!start) {
-        return undefined;
-    }
-
-    const end = node.position.end && toPosition(node.position.end);
-    if (!end) {
-        return undefined;
-    }
-
+    const start = toVscodePosition(rule.positionBy({ index: offset }));
+    const end = toVscodePosition(rule.positionBy({ index: offset + length }));
     return new vscode.Location(uri, new vscode.Range(start, end));
 }
 
-const toPosition = (node: CssPosition) => {
-    return new vscode.Position(node.line - 1, node.column - 1);
-}
 
-interface CssPosition {
-    line: number;
-    column: number;
+function toVscodePosition(p: postcss.Position): vscode.Position {
+    return new vscode.Position(p.line - 1, p.column - 1);
 }

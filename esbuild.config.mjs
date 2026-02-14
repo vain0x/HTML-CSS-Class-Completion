@@ -5,6 +5,11 @@ const ctx = await context({
   outfile: "dist/extension.js",
   bundle: true,
   format: "esm",
+  banner: {
+    // PostCSS uses CJS internally; provide `require` in the ESM bundle.
+    // https://github.com/evanw/esbuild/issues/1921
+    js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
+  },
 
   platform: "node",
   target: "node24",
