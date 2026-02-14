@@ -137,7 +137,7 @@
     "package": "node esbuild.config.mjs",
     "vsce-package": "vsce package",
     "lint": "echo no lints",
-    "test": "node --import @swc-node/register/esm-register --enable-source-maps --test"
+    "test": "node --import ./test/hooks/register.mjs --enable-source-maps --test \"test/**/*.test.ts\""
   },
   "devDependencies": {
     "@swc-node/register": "^1.11.1",
@@ -150,6 +150,7 @@
   "dependencies": {
     "@adobe/css-tools": "^4.4.0",
     "htmlparser2": "^9.1.0",
-    "p-map": "^7.0.2"
+    "p-map": "^7.0.2",
+    "vscode-uri": "^3.1.0"
   }
 }
