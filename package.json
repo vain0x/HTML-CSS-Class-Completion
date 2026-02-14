@@ -136,12 +136,11 @@
     "watch": "node esbuild.config.mjs --watch",
     "package": "node esbuild.config.mjs",
     "vsce-package": "vsce package",
-    "test-compile": "tsc -p ./",
-    "test-watch": "tsc -watch -p ./",
-    "lint": "echo no lint",
-    "test": "echo no tests"
+    "lint": "echo no lints",
+    "test": "node --import @swc-node/register/esm-register --enable-source-maps --test"
   },
   "devDependencies": {
+    "@swc-node/register": "^1.11.1",
     "@types/node": "^22.10.2",
     "@types/vscode": "^1.96.0",
     "@vscode/vsce": "^3.7.1",

@@ -7,7 +7,7 @@
 			"ESNext"
 		],
 		"sourceMap": true,
-		"rootDir": "src",
+		"rootDir": ".",
 		"forceConsistentCasingInFileNames": true,
 		"isolatedModules": true,
 		"noEmit": true,
@@ -15,7 +15,8 @@
 		"strict": true
 	},
 	"include": [
-		"src/**/*.ts"
+		"src/**/*.ts",
+		"test/**/*.ts"
 	],
 	"exclude": [
 		"node_modules"

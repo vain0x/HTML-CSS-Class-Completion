@@ -5,6 +5,8 @@ The versions >= 1.21 are fork.
 ### Unreleased
 
 * Changed `enableExternalStylesheetSupport` default value to `false` to prevent potentially unintended remote access
+* Internals
+    * Set up unit testing
 
 ### 1.23.0 - 2026-02-11
 
