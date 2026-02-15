@@ -2,11 +2,13 @@ import pMap from "p-map";
 import * as vscode from "vscode";
 import {
     commands, CompletionItem, CompletionItemKind, Disposable,
-    ExtensionContext, languages, Location, Position, Range, TextDocument, Uri, window,
+    ExtensionContext, languages, Location, Position, TextDocument, Uri, window,
     workspace,
 } from "vscode";
+import { extractClassNameFromAttribute } from "./class-name-extractor";
 import type ClassAttributeMatcher from "./common/class-attribute-matcher";
 import CssClassDefinition from "./common/css-class-definition";
+import type LanguageFeaturesOption from "./common/language-features-option";
 import Fetcher from "./fetcher";
 import logger from "./logger";
 import Notifier from "./notifier";
@@ -17,8 +19,6 @@ import IParseOptions from "./parse-engines/common/parse-options";
 import ParseEngineRegistry from "./parse-engines/parse-engine-registry";
 import CssParseEngine from "./parse-engines/types/css-parse-engine";
 import RegexpCssParseEngine from "./parse-engines/types/regexp-css-parse-engine";
-import { config } from "process";
-import type LanguageFeaturesOption from "./common/language-features-option";
 
 enum Command {
     Cache = "html-css-class-completion.cache",
@@ -199,18 +199,10 @@ const registerCompletionProvider = (
 
 const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttributeMatcher) => languages.registerDefinitionProvider(languageSelector, {
     provideDefinition(document, position, _token) {
-        // Check if the cursor is on class attribute.
-        const classesOnAttribute = ClassAttributeExtractor.extract(document, position, matcher);
-        if (classesOnAttribute == null) {
+        const word = extractClassNameFromAttribute(document, position, matcher);
+        if (word == null) {
             return;
         }
-
-        const range: Range | undefined = document.getWordRangeAtPosition(position, /[-_\w,:/#@\(\)\[\]]+/);
-        if (range == null) {
-            return;
-        }
-
-        const word: string = document.getText(range);
 
         const definition = uniqueDefinitions.find((definition) => {
             return definition.className === word;
