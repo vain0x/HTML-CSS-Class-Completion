@@ -145,7 +145,8 @@
     "@types/vscode": "^1.96.0",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.27.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vscode-languageserver-textdocument": "^1.0.12"
   },
   "dependencies": {
     "htmlparser2": "^9.1.0",

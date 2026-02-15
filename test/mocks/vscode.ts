@@ -1,4 +1,5 @@
 export { URI as Uri } from "vscode-uri";
+export { TextDocument } from "vscode-languageserver-textdocument";
 
 export class Position {
   constructor(
