@@ -16,6 +16,8 @@
 
 ### Fork-only features
 
+- "Go to Definition" for CSS class names from HTML/JSX
+- "Find All References" for CSS class names across CSS/HTML/JSX
 - Configuration `"html-css-class-completion.enableExternalStylesheetSupport"` (defaults to `false`)
     - Opt-in flag to fetch external stylesheets referenced through `link` elements in HTML files
 - Configuration `"html-css-class-completion.CSSParser": "regexp"`: Uses a regexp-based CSS class extractor

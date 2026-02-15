@@ -2,6 +2,7 @@
 interface LanguageFeaturesOption {
     completion: boolean;
     definitions: boolean;
+    references: boolean;
 }
 
 export default LanguageFeaturesOption;

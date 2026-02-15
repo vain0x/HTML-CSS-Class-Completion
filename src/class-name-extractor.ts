@@ -1,4 +1,4 @@
-import { Position, TextDocument } from "vscode";
+import { Location, Position, TextDocument } from "vscode";
 import type ClassAttributeMatcher from "./common/class-attribute-matcher";
 import ClassAttributeExtractor from "./parse-engines/common/class-attribute-extractor";
 
@@ -10,8 +10,9 @@ const SELECTOR_CLASS_REGEX = /\.(?:[-_\w]|\\.)+/;
  * Returns undefined if the cursor is not inside a class attribute.
  */
 export const extractClassNameFromAttribute = (document: TextDocument, position: Position, matcher: ClassAttributeMatcher): string | undefined => {
-    if (ClassAttributeExtractor.extract(document, position, matcher) == null) return undefined;
-    const range = document.getWordRangeAtPosition(position, CLASS_NAME_REGEX);
+    const classNames = ClassAttributeExtractor.extract(document, position, matcher);
+    if (!classNames) return undefined;
+    const range = classNames && document.getWordRangeAtPosition(position, CLASS_NAME_REGEX);
     if (!range) return undefined;
     return document.getText(range);
 };
@@ -26,4 +27,29 @@ export const extractClassNameFromSelector = (document: TextDocument, position: P
     const text = document.getText(range);
     if (!text.startsWith(".")) return undefined;
     return text.slice(1).replaceAll("\\", "");
+};
+
+/**
+ * Searches a document for all usages of a CSS class name within class attributes.
+ */
+export const searchClassUsagesInDocument = (document: TextDocument, className: string, matcher: ClassAttributeMatcher): Location[] => {
+    const locations: Location[] = [];
+    const text = document.getText();
+    let searchIndex = 0;
+    while (true) {
+        const index = text.indexOf(className, searchIndex);
+        if (index === -1) break;
+        searchIndex = index + className.length + 1;
+
+        // Verify exact match
+        const wordRange = document.getWordRangeAtPosition(document.positionAt(index), CLASS_NAME_REGEX);
+        if (!wordRange || document.getText(wordRange) !== className) continue;
+
+        // Ensure it appears in a class attribute
+        const endPosition = document.positionAt(index + className.length);
+        const classNames = ClassAttributeExtractor.extract(document, endPosition, matcher);
+        if (!classNames) continue;
+        locations.push(new Location(document.uri, wordRange));
+    }
+    return locations;
 };

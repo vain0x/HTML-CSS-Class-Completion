@@ -5,7 +5,7 @@ import {
     ExtensionContext, languages, Location, Position, TextDocument, Uri, window,
     workspace,
 } from "vscode";
-import { extractClassNameFromAttribute } from "./class-name-extractor";
+import { extractClassNameFromAttribute, extractClassNameFromSelector, searchClassUsagesInDocument } from "./class-name-extractor";
 import type ClassAttributeMatcher from "./common/class-attribute-matcher";
 import CssClassDefinition from "./common/css-class-definition";
 import type LanguageFeaturesOption from "./common/language-features-option";
@@ -38,6 +38,7 @@ enum Configuration {
 
 const notifier: Notifier = new Notifier(Command.Cache);
 let uniqueDefinitions: CssClassDefinition[] = [];
+let allDefinitionsMap: Map<string, CssClassDefinition[]> = new Map();
 
 const completionTriggerChars = ['"', "'", " ", "."];
 
@@ -105,7 +106,9 @@ async function performCache(): Promise<void> {
             throw new Error("Failed to parse the documents", { cause: err });
         }
 
-        uniqueDefinitions = [...Map.groupBy(definitions, (def) => def.className)].map(([_className, group]) => group[0]);
+        const grouped = Map.groupBy(definitions, (def) => def.className);
+        allDefinitionsMap = grouped;
+        uniqueDefinitions = [...grouped].map(([_className, group]) => group[0]);
 
         let summary = "Summary:\n";
         summary += `${uris.length} parseable documents found\n`;
@@ -215,6 +218,52 @@ const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttr
     },
 });
 
+const findReferences = async (
+    className: string,
+    token: vscode.CancellationToken,
+): Promise<Location[]> => {
+    const locations: Location[] = [];
+
+    // CSS definition locations from cache
+    const definitions = allDefinitionsMap.get(className);
+    if (definitions) {
+        for (const def of definitions) {
+            if (def.location) {
+                locations.push(def.location);
+            }
+        }
+    }
+
+    // Search workspace files for usages in class attributes
+    const matcherMap = buildLanguageMatcherMap();
+    const uris = await vscode.workspace.findFiles("**/*.{html,jsx,tsx}", "**/node_modules/**");
+
+    const perFileResults = await pMap(uris, async (uri) => {
+        if (token.isCancellationRequested) return [];
+
+        const doc = await workspace.openTextDocument(uri);
+
+        const matcher = matcherMap.get(doc.languageId);
+        if (!matcher) return [];
+
+        return searchClassUsagesInDocument(doc, className, matcher);
+    }, { concurrency: 30 });
+
+    locations.push(...perFileResults.flat());
+    return locations;
+};
+
+const registerReferenceProvider = (
+    languageSelector: string,
+    extractClassName: (document: TextDocument, position: Position) => string | undefined,
+) => languages.registerReferenceProvider(languageSelector, {
+    async provideReferences(document, position, _context, token) {
+        const className = extractClassName(document, position);
+        if (!className) return [];
+        return await findReferences(className, token);
+    },
+});
+
 const registerHTMLProviders = (disposables: Disposable[]) => {
     const matcherMap = buildLanguageMatcherMap();
     workspace.getConfiguration()
@@ -226,6 +275,11 @@ const registerHTMLProviders = (disposables: Disposable[]) => {
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
                 disposables.push(registerCompletionProvider(extension, matcher));
+            }
+
+            const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
+            if (referencesEnabled) {
+                disposables.push(registerReferenceProvider(extension, (doc, pos) => extractClassNameFromAttribute(doc, pos, matcher)));
             }
         });
 }
@@ -251,6 +305,11 @@ const registerCSSProviders = (disposables: Disposable[]) => {
                 // Its support should probably be removed
                 disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-_\w,:/#@\(\)\[\] ])*$)/ }, "."));
             }
+
+            const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
+            if (referencesEnabled) {
+                disposables.push(registerReferenceProvider(extension, extractClassNameFromSelector));
+            }
         });
 }
 
@@ -270,6 +329,11 @@ const registerJavaScriptProviders = (disposables: Disposable[]) => {
             const definitionsEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.definitions ?? true;
             if (definitionsEnabled) {
                 disposables.push(registerDefinitionProvider(extension, matcher));
+            }
+
+            const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
+            if (referencesEnabled) {
+                disposables.push(registerReferenceProvider(extension, (doc, pos) => extractClassNameFromAttribute(doc, pos, matcher)));
             }
         });
 }

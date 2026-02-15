@@ -111,11 +111,17 @@
                 "type": "boolean",
                 "description": "Go to definitions feature navigating to CSS class definition",
                 "default": true
+              },
+              "references": {
+                "type": "boolean",
+                "description": "Find all references feature for CSS class names",
+                "default": true
               }
             },
             "default": {
               "completion": true,
-              "definitions": true
+              "definitions": true,
+              "references": true
             }
           }
         }
