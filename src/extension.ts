@@ -41,6 +41,18 @@ let uniqueDefinitions: CssClassDefinition[] = [];
 
 const completionTriggerChars = ['"', "'", " ", "."];
 
+function buildLanguageMatcherMap(): Map<string, ClassAttributeMatcher> {
+    const map = new Map<string, ClassAttributeMatcher>();
+    const config = workspace.getConfiguration();
+    for (const lang of config.get<string[]>(Configuration.HTMLLanguages) ?? []) {
+        map.set(lang, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ });
+    }
+    for (const lang of config.get<string[]>(Configuration.JavaScriptLanguages) ?? []) {
+        map.set(lang, { type: "jsx" });
+    }
+    return map;
+}
+
 let caching = false;
 let cacheRequested = false;
 
@@ -211,15 +223,20 @@ const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttr
     },
 });
 
-const registerHTMLProviders = (disposables: Disposable[]) =>
+const registerHTMLProviders = (disposables: Disposable[]) => {
+    const matcherMap = buildLanguageMatcherMap();
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
         ?.forEach((extension) => {
+            const matcher = matcherMap.get(extension);
+            if (!matcher) return;
+
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }));
+                disposables.push(registerCompletionProvider(extension, matcher));
             }
         });
+}
 
 const registerCSSProviders = (disposables: Disposable[]) => {
     const parser = workspace.getConfiguration()
@@ -246,17 +263,21 @@ const registerCSSProviders = (disposables: Disposable[]) => {
 }
 
 const registerJavaScriptProviders = (disposables: Disposable[]) => {
+    const matcherMap = buildLanguageMatcherMap();
     workspace.getConfiguration()
         .get<string[]>(Configuration.JavaScriptLanguages)
         ?.forEach((extension) => {
+            const matcher = matcherMap.get(extension);
+            if (!matcher) return;
+
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                disposables.push(registerCompletionProvider(extension, { type: "jsx" }));
+                disposables.push(registerCompletionProvider(extension, matcher));
             }
 
             const definitionsEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.definitions ?? true;
             if (definitionsEnabled) {
-                disposables.push(registerDefinitionProvider(extension, { type: "jsx" }));
+                disposables.push(registerDefinitionProvider(extension, matcher));
             }
         });
 }
