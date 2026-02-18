@@ -273,7 +273,7 @@ const registerCSSProviders = (disposables: Disposable[]) => {
     let engine: IParseEngine | undefined;
     if (parser === "regexp") {
         engine = new RegexpCssParseEngine();
-    } else { // css-tools
+    } else { // postcss
         engine = new CssParseEngine();
     }
     ParseEngineRegistry.setParseEngine(engine);

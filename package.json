@@ -82,12 +82,12 @@
           },
           "html-css-class-completion.CSSParser": {
             "type": "string",
-            "description": "CSS Parser (@adobe/css-tools (default) or regexp-based rough parser.)",
+            "description": "CSS Parser (postcss (default) or regexp-based rough parser.)",
             "enum": [
-              "css-tools",
+              "postcss",
               "regexp"
             ],
-            "default": "css-tools"
+            "default": "postcss"
           },
           "html-css-class-completion.JavaScriptLanguages": {
             "type": "array",
