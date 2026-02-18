@@ -1,10 +1,35 @@
 import assert from "node:assert";
 import { suite, test } from "node:test";
-import { Position } from "vscode";
+import { Disposable, Position } from "vscode";
+import AttributeExtractorRegistry from "../src/attribute-extractors/attribute-extractor-registry";
+import JsxAttributeExtractor from "../src/attribute-extractors/types/jsx-attribute-extractor";
+import RegExpAttributeExtractor from "../src/attribute-extractors/types/regexp-attribute-extractor";
 import { extractClassNameFromAttribute, extractClassNameFromSelector, searchClassUsagesInDocument } from "../src/class-name-extractor";
 import { createDocument } from "./mocks/text-document";
+import { setup } from "./test-util";
+
+const registerExtractors = (): Disposable => {
+    const disposables: Disposable[] = [];
+    for (const { languageId, extractor } of [
+        { languageId: "html", extractor: RegExpAttributeExtractor.html },
+        { languageId: "css", extractor: RegExpAttributeExtractor.css },
+        { languageId: "javascriptreact", extractor: new JsxAttributeExtractor() },
+        { languageId: "typescriptreact", extractor: new JsxAttributeExtractor() },
+    ]) {
+        disposables.push(AttributeExtractorRegistry.register(languageId, extractor));
+    }
+    return {
+        dispose() {
+            disposables.forEach(disposable => disposable.dispose());
+        }
+    };
+}
 
 suite("extractClassNameFromSelector", () => {
+    setup(() => {
+        return registerExtractors();
+    });
+
     test("extracts class name from simple selector", () => {
         const doc = createDocument(".foo {}", "css");
         assert.strictEqual(extractClassNameFromSelector(doc, new Position(0, 1)), "foo");
@@ -38,11 +63,15 @@ suite("extractClassNameFromSelector", () => {
 });
 
 suite("extractClassNameFromAttribute", () => {
+    setup(() => {
+        return registerExtractors();
+    });
+
     test("extracts class name from HTML class attribute", () => {
         const doc = createDocument('<div class="foo bar">', "html");
         // cursor on "foo" (position 13 = "o" of "foo")
         assert.strictEqual(
-            extractClassNameFromAttribute(doc, new Position(0, 13), { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }),
+            extractClassNameFromAttribute(doc, new Position(0, 13)),
             "foo",
         );
     });
@@ -50,7 +79,7 @@ suite("extractClassNameFromAttribute", () => {
     test("returns undefined when cursor is outside class attribute", () => {
         const doc = createDocument("<div>foo</div>", "html");
         assert.strictEqual(
-            extractClassNameFromAttribute(doc, new Position(0, 6), { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ }),
+            extractClassNameFromAttribute(doc, new Position(0, 6)),
             undefined,
         );
     });
@@ -59,13 +88,17 @@ suite("extractClassNameFromAttribute", () => {
         const doc = createDocument('<div className="active">', "typescriptreact");
         // cursor on "active" (position 16)
         assert.strictEqual(
-            extractClassNameFromAttribute(doc, new Position(0, 19), { type: "jsx" }),
+            extractClassNameFromAttribute(doc, new Position(0, 19)),
             "active",
         );
     });
 });
 
 suite("searchClassUsagesInDocument", () => {
+    setup(() => {
+        return registerExtractors();
+    });
+
     const tsxContent = `const Foo = () => (
   <div>
     <div className="foo bar" />
@@ -75,7 +108,7 @@ suite("searchClassUsagesInDocument", () => {
 
     test("finds all usages of a class in JSX file", () => {
         const doc = createDocument(tsxContent, "typescriptreact");
-        const locations = searchClassUsagesInDocument(doc, "foo", { type: "jsx" });
+        const locations = searchClassUsagesInDocument(doc, "foo");
 
         assert.strictEqual(locations.length, 2);
         // First usage: line 2, className="foo bar"
@@ -90,7 +123,7 @@ suite("searchClassUsagesInDocument", () => {
         // "foo" appears as component name and in className
         const content = `const foo = () => <div className="foo" />`;
         const doc = createDocument(content, "typescriptreact");
-        const locations = searchClassUsagesInDocument(doc, "foo", { type: "jsx" });
+        const locations = searchClassUsagesInDocument(doc, "foo");
 
         // Only the className="foo" should match, not `const foo`
         assert.strictEqual(locations.length, 1);
@@ -100,7 +133,7 @@ suite("searchClassUsagesInDocument", () => {
     test("does not match partial class name", () => {
         const content = `<div className="foobar foo" />`;
         const doc = createDocument(content, "typescriptreact");
-        const locations = searchClassUsagesInDocument(doc, "foo", { type: "jsx" });
+        const locations = searchClassUsagesInDocument(doc, "foo");
 
         // "foobar" should not match, only "foo"
         assert.strictEqual(locations.length, 1);

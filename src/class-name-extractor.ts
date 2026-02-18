@@ -1,6 +1,5 @@
 import { Location, Position, TextDocument } from "vscode";
-import type ClassAttributeMatcher from "./common/class-attribute-matcher";
-import ClassAttributeExtractor from "./parse-engines/common/class-attribute-extractor";
+import AttributeExtractorGateway from "./attribute-extractor-gateway";
 
 const CLASS_NAME_REGEX = /[-_\w,:/#@\(\)\[\]]+/;
 const SELECTOR_CLASS_REGEX = /\.(?:[-_\w]|\\.)+/;
@@ -9,8 +8,8 @@ const SELECTOR_CLASS_REGEX = /\.(?:[-_\w]|\\.)+/;
  * Extracts the CSS class name at the cursor position within an HTML/JSX class attribute.
  * Returns undefined if the cursor is not inside a class attribute.
  */
-export const extractClassNameFromAttribute = (document: TextDocument, position: Position, matcher: ClassAttributeMatcher): string | undefined => {
-    const classNames = ClassAttributeExtractor.extract(document, position, matcher);
+export const extractClassNameFromAttribute = (document: TextDocument, position: Position): string | undefined => {
+    const classNames = AttributeExtractorGateway.callExtractor(document, position);
     if (!classNames) return undefined;
     const range = classNames && document.getWordRangeAtPosition(position, CLASS_NAME_REGEX);
     if (!range) return undefined;
@@ -32,7 +31,7 @@ export const extractClassNameFromSelector = (document: TextDocument, position: P
 /**
  * Searches a document for all usages of a CSS class name within class attributes.
  */
-export const searchClassUsagesInDocument = (document: TextDocument, className: string, matcher: ClassAttributeMatcher): Location[] => {
+export const searchClassUsagesInDocument = (document: TextDocument, className: string): Location[] => {
     const locations: Location[] = [];
     const text = document.getText();
     let searchIndex = 0;
@@ -47,7 +46,7 @@ export const searchClassUsagesInDocument = (document: TextDocument, className: s
 
         // Ensure it appears in a class attribute
         const endPosition = document.positionAt(index + className.length);
-        const classNames = ClassAttributeExtractor.extract(document, endPosition, matcher);
+        const classNames = AttributeExtractorGateway.callExtractor(document, endPosition);
         if (!classNames) continue;
         locations.push(new Location(document.uri, wordRange));
     }

@@ -12,7 +12,7 @@ class ClassAttributeExtractor {
                 return extractor.extract(document, position);
             }
             case "jsx": {
-                const extractor = new JsxAttributeExtractor();
+                const extractor = JsxAttributeExtractor.instance;
                 return extractor.extract(document, position);
             }
         }

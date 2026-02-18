@@ -5,15 +5,17 @@ import {
     ExtensionContext, languages, Location, Position, TextDocument, Uri, window,
     workspace,
 } from "vscode";
+import AttributeExtractorGateway from "./attribute-extractor-gateway";
+import AttributeExtractorRegistry from "./attribute-extractors/attribute-extractor-registry";
+import JsxAttributeExtractor from "./attribute-extractors/types/jsx-attribute-extractor";
+import RegExpAttributeExtractor from "./attribute-extractors/types/regexp-attribute-extractor";
 import { extractClassNameFromAttribute, extractClassNameFromSelector, searchClassUsagesInDocument } from "./class-name-extractor";
-import type ClassAttributeMatcher from "./common/class-attribute-matcher";
 import CssClassDefinition from "./common/css-class-definition";
 import type LanguageFeaturesOption from "./common/language-features-option";
 import Fetcher from "./fetcher";
 import logger from "./logger";
 import Notifier from "./notifier";
 import ParseEngineGateway from "./parse-engine-gateway";
-import ClassAttributeExtractor from "./parse-engines/common/class-attribute-extractor";
 import type IParseEngine from "./parse-engines/common/parse-engine";
 import IParseOptions from "./parse-engines/common/parse-options";
 import ParseEngineRegistry from "./parse-engines/parse-engine-registry";
@@ -41,18 +43,6 @@ let uniqueDefinitions: CssClassDefinition[] = [];
 let allDefinitionsMap: Map<string, CssClassDefinition[]> = new Map();
 
 const completionTriggerChars = ['"', "'", " ", "."];
-
-function buildLanguageMatcherMap(): Map<string, ClassAttributeMatcher> {
-    const map = new Map<string, ClassAttributeMatcher>();
-    const config = workspace.getConfiguration();
-    for (const lang of config.get<string[]>(Configuration.HTMLLanguages) ?? []) {
-        map.set(lang, { type: "regexp", classMatchRegex: /class=["|']([-_\w,:/#@\(\)\[\] ]*$)/ });
-    }
-    for (const lang of config.get<string[]>(Configuration.JavaScriptLanguages) ?? []) {
-        map.set(lang, { type: "jsx" });
-    }
-    return map;
-}
 
 let caching = false;
 let cacheRequested = false;
@@ -159,14 +149,13 @@ async function cache() {
 
 const registerCompletionProvider = (
     languageSelector: string,
-    matcher: ClassAttributeMatcher,
     classPrefix = "",
 ) => languages.registerCompletionItemProvider(languageSelector, {
-    provideCompletionItems(document: TextDocument, position: Position): CompletionItem[] {
+    provideCompletionItems(document: TextDocument, position: Position): CompletionItem[] | undefined {
         // Check if the cursor is on class attribute and collect class names on the attribute.
-        const classesOnAttribute = ClassAttributeExtractor.extract(document, position, matcher);
+        const classesOnAttribute = AttributeExtractorGateway.callExtractor(document, position);
         if (classesOnAttribute == null) {
-            return [];
+            return undefined;
         }
 
         const wordRangeAtPosition = document.getWordRangeAtPosition(position, /[-_\w,:/#@\(\)\[\]]+/);
@@ -200,9 +189,9 @@ const registerCompletionProvider = (
     },
 }, ...completionTriggerChars);
 
-const registerDefinitionProvider = (languageSelector: string, matcher: ClassAttributeMatcher) => languages.registerDefinitionProvider(languageSelector, {
+const registerDefinitionProvider = (languageSelector: string) => languages.registerDefinitionProvider(languageSelector, {
     provideDefinition(document, position, _token) {
-        const word = extractClassNameFromAttribute(document, position, matcher);
+        const word = extractClassNameFromAttribute(document, position);
         if (word == null) {
             return;
         }
@@ -235,7 +224,6 @@ const findReferences = async (
     }
 
     // Search workspace files for usages in class attributes
-    const matcherMap = buildLanguageMatcherMap();
     const uris = await vscode.workspace.findFiles("**/*.{html,jsx,tsx}", "**/node_modules/**");
 
     const perFileResults = await pMap(uris, async (uri) => {
@@ -243,10 +231,7 @@ const findReferences = async (
 
         const doc = await workspace.openTextDocument(uri);
 
-        const matcher = matcherMap.get(doc.languageId);
-        if (!matcher) return [];
-
-        return searchClassUsagesInDocument(doc, className, matcher);
+        return searchClassUsagesInDocument(doc, className);
     }, { concurrency: 30 });
 
     locations.push(...perFileResults.flat());
@@ -265,21 +250,19 @@ const registerReferenceProvider = (
 });
 
 const registerHTMLProviders = (disposables: Disposable[]) => {
-    const matcherMap = buildLanguageMatcherMap();
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
         ?.forEach((extension) => {
-            const matcher = matcherMap.get(extension);
-            if (!matcher) return;
+            disposables.push(AttributeExtractorRegistry.register(extension, RegExpAttributeExtractor.html));
 
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                disposables.push(registerCompletionProvider(extension, matcher));
+                disposables.push(registerCompletionProvider(extension));
             }
 
             const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
             if (referencesEnabled) {
-                disposables.push(registerReferenceProvider(extension, (doc, pos) => extractClassNameFromAttribute(doc, pos, matcher)));
+                disposables.push(registerReferenceProvider(extension, (doc, pos) => extractClassNameFromAttribute(doc, pos)));
             }
         });
 }
@@ -298,12 +281,11 @@ const registerCSSProviders = (disposables: Disposable[]) => {
     workspace.getConfiguration()
         .get<string[]>(Configuration.CSSLanguages)
         ?.forEach((extension) => {
+            disposables.push(AttributeExtractorRegistry.register(extension, RegExpAttributeExtractor.css));
+
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                // The @apply rule was a CSS proposal which has since been abandoned,
-                // check the proposal for more info: http://tabatkins.github.io/specs/css-apply-rule/
-                // Its support should probably be removed
-                disposables.push(registerCompletionProvider(extension, { type: "regexp", classMatchRegex: /@apply ((?:\.|[-_\w,:/#@\(\)\[\] ])*$)/ }, "."));
+                disposables.push(registerCompletionProvider(extension));
             }
 
             const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
@@ -314,38 +296,36 @@ const registerCSSProviders = (disposables: Disposable[]) => {
 }
 
 const registerJavaScriptProviders = (disposables: Disposable[]) => {
-    const matcherMap = buildLanguageMatcherMap();
     workspace.getConfiguration()
         .get<string[]>(Configuration.JavaScriptLanguages)
         ?.forEach((extension) => {
-            const matcher = matcherMap.get(extension);
-            if (!matcher) return;
+            disposables.push(AttributeExtractorRegistry.register(extension, new JsxAttributeExtractor()));
 
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                disposables.push(registerCompletionProvider(extension, matcher));
+                disposables.push(registerCompletionProvider(extension));
             }
 
             const definitionsEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.definitions ?? true;
             if (definitionsEnabled) {
-                disposables.push(registerDefinitionProvider(extension, matcher));
+                disposables.push(registerDefinitionProvider(extension));
             }
 
             const referencesEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.references ?? true;
             if (referencesEnabled) {
-                disposables.push(registerReferenceProvider(extension, (doc, pos) => extractClassNameFromAttribute(doc, pos, matcher)));
+                disposables.push(registerReferenceProvider(extension, (doc, pos) => extractClassNameFromAttribute(doc, pos)));
             }
         });
 }
 
 function registerEmmetProviders(disposables: Disposable[]) {
-    const emmetRegex = /(?=\.)([\w-@:\/. ]*$)/;
-
     const registerProviders = (modes: string[]) => {
         modes.forEach((language) => {
+            disposables.push(AttributeExtractorRegistry.register(language, RegExpAttributeExtractor.emmet));
+
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {
-                disposables.push(registerCompletionProvider(language, { type: "regexp", classMatchRegex: emmetRegex, splitChar: "" }, "."));
+                disposables.push(registerCompletionProvider(language));
             }
         });
     };
