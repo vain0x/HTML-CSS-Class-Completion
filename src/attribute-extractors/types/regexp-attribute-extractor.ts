@@ -30,8 +30,6 @@ class RegExpAttributeExtractor implements IAttributeExtractor {
         return classesOnAttribute;
     }
 
-    static html = new RegExpAttributeExtractor(/class=["|']([-_\w,:/#@\(\)\[\] ]*$)/, " ");
-
     // The @apply rule was a CSS proposal which has since been abandoned,
     // check the proposal for more info: http://tabatkins.github.io/specs/css-apply-rule/
     // Its support should probably be removed

@@ -2,6 +2,11 @@ import type vscode from "vscode";
 import { Position, Range } from "vscode";
 import { TextDocument } from "vscode-languageserver-textdocument";
 
+/**
+ * Mock implementation of TextDocument.
+ *
+ * @see {vscode.TextDocument}
+ */
 class MockTextDocument {
     private doc: TextDocument;
 
@@ -9,10 +14,21 @@ class MockTextDocument {
         this.doc = TextDocument.create("file:///test.txt", languageId, 1, content);
     }
 
-    get uri() { return this.doc.uri; }
-    get languageId() { return this.doc.languageId; }
-    get lineCount() { return this.doc.lineCount; }
-    offsetAt(position: Position) { return this.doc.offsetAt(position); }
+    get uri() {
+        return this.doc.uri;
+    }
+
+    get languageId() {
+        return this.doc.languageId;
+    }
+
+    get lineCount() {
+        return this.doc.lineCount;
+    }
+
+    offsetAt(position: Position) {
+        return this.doc.offsetAt(position);
+    }
 
     positionAt(offset: number) {
         const p = this.doc.positionAt(offset);
@@ -24,6 +40,14 @@ class MockTextDocument {
             start: { line: range.start.line, character: range.start.character },
             end: { line: range.end.line, character: range.end.character },
         });
+    }
+
+    lineAt(line: number) {
+        const text = this.doc.getText({
+            start: { line, character: 0 },
+            end: { line: line + 1, character: 0 },
+        }).replace(/\n$/, "");
+        return { text };
     }
 
     getWordRangeAtPosition(position: Position, regex: RegExp): Range | undefined {
@@ -49,5 +73,6 @@ class MockTextDocument {
     }
 }
 
-export const createDocument = (content: string, languageId = "html") =>
-    new MockTextDocument(content, languageId) as unknown as vscode.TextDocument;
+export const createDocument = (content: string, languageId = "html") => {
+    return new MockTextDocument(content, languageId) as unknown as vscode.TextDocument;
+}

@@ -7,11 +7,12 @@ import RegExpAttributeExtractor from "../src/attribute-extractors/types/regexp-a
 import { extractClassNameFromAttribute, extractClassNameFromSelector, searchClassUsagesInDocument } from "../src/class-name-extractor";
 import { createDocument } from "./mocks/text-document";
 import { setup } from "./test-util";
+import HtmlAttributeExtractor from "../src/attribute-extractors/types/html-attribute-extractor";
 
 const registerExtractors = (): Disposable => {
     const disposables: Disposable[] = [];
     for (const { languageId, extractor } of [
-        { languageId: "html", extractor: RegExpAttributeExtractor.html },
+        { languageId: "html", extractor: new HtmlAttributeExtractor() },
         { languageId: "css", extractor: RegExpAttributeExtractor.css },
         { languageId: "javascriptreact", extractor: new JsxAttributeExtractor() },
         { languageId: "typescriptreact", extractor: new JsxAttributeExtractor() },

@@ -7,6 +7,7 @@ import {
 } from "vscode";
 import AttributeExtractorGateway from "./attribute-extractor-gateway";
 import AttributeExtractorRegistry from "./attribute-extractors/attribute-extractor-registry";
+import HtmlAttributeExtractor from "./attribute-extractors/types/html-attribute-extractor";
 import JsxAttributeExtractor from "./attribute-extractors/types/jsx-attribute-extractor";
 import RegExpAttributeExtractor from "./attribute-extractors/types/regexp-attribute-extractor";
 import { extractClassNameFromAttribute, extractClassNameFromSelector, searchClassUsagesInDocument } from "./class-name-extractor";
@@ -253,7 +254,7 @@ const registerHTMLProviders = (disposables: Disposable[]) => {
     workspace.getConfiguration()
         ?.get<string[]>(Configuration.HTMLLanguages)
         ?.forEach((extension) => {
-            disposables.push(AttributeExtractorRegistry.register(extension, RegExpAttributeExtractor.html));
+            disposables.push(AttributeExtractorRegistry.register(extension, new HtmlAttributeExtractor()));
 
             const completionEnabled = workspace.getConfiguration().get<LanguageFeaturesOption>(Configuration.LanguageFeatures)?.completion ?? true;
             if (completionEnabled) {

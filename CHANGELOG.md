@@ -5,6 +5,7 @@ The versions >= 1.21 are fork.
 ### Unreleased
 
 * Added ReferenceProvider (Find All References)
+* Improved HTML class attribute extractor
 * Switched CSS parser to [postcss](https://github.com/postcss/postcss)
     * From [@adobe/css-tools](https://github.com/adobe/css-tools) that does not support CSS Nesting (see the related issue: [css-tools not supporting css nesting](https://github.com/adobe/css-tools/issues/122))
 * Changed `enableExternalStylesheetSupport` default value to `false` to prevent potentially unintended remote access
