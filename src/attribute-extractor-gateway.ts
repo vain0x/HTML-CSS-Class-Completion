@@ -5,10 +5,13 @@ class AttributeExtractorGateway {
     public static callExtractor(document: TextDocument, position: Position): string[] | null {
         let classNames: Set<string> | undefined;
         AttributeExtractorRegistry.getExtractors(document.languageId).forEach((extractor) => {
-            extractor.extract(document, position)?.forEach((className) => {
+            const extract = extractor.extract(document, position);
+            if (extract != null) {
                 classNames ??= new Set();
-                classNames.add(className);
-            });
+                extract.forEach((className) => {
+                    classNames!.add(className);
+                });
+            }
         });
         return classNames ? [...classNames] : null;
     }
